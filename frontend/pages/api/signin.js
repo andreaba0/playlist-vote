@@ -3,20 +3,13 @@ import { getClient as getRedisClient } from '../../modules/redis'
 import {v4 as uuidv4} from 'uuid'
 
 export default async function signin(req, res) {
-    const client = getClient()
-    const redisClient = getRedisClient()
+    const client = await getClient()
+    const redisClient = await getRedisClient()
     const body = req.body || null
     if(body === null) {
         res.status(400).send('BODY_REQUIRED')
         return
     }
-    try {
-        await client.connect()
-    } catch(e) {}
-
-    try {
-        await redisClient.connect()
-    } catch(e) {}
 
 
     try {

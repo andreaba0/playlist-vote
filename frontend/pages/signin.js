@@ -11,10 +11,7 @@ export async function getServerSideProps(context) {
     }
     const session = parseUserSession(userAccessCookie)
 
-    const client = getClient()
-    try {
-        await client.connect()
-    } catch (e) { }
+    const client = await getClient()
     const redisUserSession = await client.get(`${session.user_uuid}.${session.session_uuid}`)
     if (redisUserSession === null) {
         context.res.setHeaders('set-cookie', 'session=;path=/;httpOnly')

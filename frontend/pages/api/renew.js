@@ -10,10 +10,7 @@ export default async function renew(req, res) {
         return
     }
     const session = parseUserSession(userAccessCookie)
-    const redisClient = getRedisClient()
-    try {
-        await redisClient.connect()
-    } catch (e) { }
+    const redisClient = await getRedisClient()
 
 
     try {
