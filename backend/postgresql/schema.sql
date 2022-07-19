@@ -10,14 +10,15 @@ create table song (
     name text not null,
     author text not null,
     user_uuid text not null,
-    created_at timestamptz,
-    primary key(id)
+    created_at timestamptz default now(),
+    primary key(id),
+    unique(name, author)
 );
 
 create table vote (
     song_id int not null,
     user_uuid text not null,
-    created_at timestamptz,
+    created_at timestamptz default now(),
     vote text not null check (vote='up' or vote='down'),
     primary key(song_id, user_uuid)
 );

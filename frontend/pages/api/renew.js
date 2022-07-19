@@ -1,14 +1,15 @@
 import { getClient as getRedisClient } from '../../modules/redis'
 import { v4 as uuidv4 } from 'uuid'
-import { parseCookie } from '../../modules/supply'
+import { parseCookie, parseUserSession } from '../../modules/supply'
 
 export default async function renew(req, res) {
     const cookies = parseCookie(req.headers.cookie)
-    const session = cookies['session'] || null
-    if (session === null) {
+    const userAccessCookie = cookies['session'] || null
+    if (userAccessCookie === null) {
         res.status(400).send('USER_SIGNED_OUT')
         return
     }
+    const session = parseUserSession(userAccessCookie)
     const redisClient = getRedisClient()
     try {
         await redisClient.connect()
