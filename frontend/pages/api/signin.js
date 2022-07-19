@@ -1,8 +1,10 @@
 import { getClient } from '../../modules/pg'
+import { getClient as getRedisClient } from '../../modules/redis'
 import {v4 as uuidv4} from 'uuid'
 
-export default async function handler(req, res) {
+export default async function signin(req, res) {
     const client = getClient()
+    const redisClient = getRedisClient()
     const body = req.body || null
     if(body === null) {
         res.status(400).send('BODY_REQUIRED')
@@ -10,6 +12,10 @@ export default async function handler(req, res) {
     }
     try {
         await client.connect()
+    } catch(e) {}
+
+    try {
+        await redisClient.connect()
     } catch(e) {}
 
 
@@ -29,6 +35,9 @@ export default async function handler(req, res) {
             const user_uuid=rows[0].uuid
             const session_uuid = uuidv4()
             const session_data = uuidv4()
+            await redisClient.set(`${user_uuid}.${session_uuid}`, session_data, {
+                EX: 60*10
+            })
             res.setHeader('set-cookie', `session=${user_uuid}.${session_uuid}.${session_data};path=/;same-site=strict;httpOnly;max-age=${60*10}`)
             res.status(200).send()
         }

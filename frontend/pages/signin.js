@@ -1,45 +1,39 @@
+import { useRouter } from "next/router"
 import { useState } from "react"
-import { createClient } from "redis"
+import { getClient } from "../modules/redis"
+import { parseCookie, parseUserSession } from "../modules/supply"
 
 export async function getServerSideProps(context) {
-    console.log(context.req.headers)
-    const cookiesHeader = context.req.headers.cookie || ''
-    const cookiesParts = cookiesHeader.split('; ')
-    const cookies = {}
-    for (var i = 0; i < cookiesParts.length; i++) {
-        var temp = cookiesParts[i].split('=')
-        cookies[temp[0]] = temp[1]
-    }
-    console.log(JSON.stringify(cookies))
+    const cookies = parseCookie(context.req.headers.cookie || '')
     const userAccessCookie = cookies['session'] || null
     if (userAccessCookie === null) return {
         props: {}
     }
-    const userId = userAccessCookie.split('.')[0]
-    const sessionId = userAccessCookie.split('.')[1]
-    const sessionCode = userAccessCookie.split('.')[2]
+    const session = parseUserSession(userAccessCookie)
 
-    const client = createClient({
-        socket: {
-            host: process.env.REDIS_HOST,
-            port: process.env.REDIS_PORT
+    const client = getClient()
+    try {
+        await client.connect()
+    } catch (e) { }
+    const redisUserSession = await client.get(`${session.user_uuid}.${session.session_uuid}`)
+    if (redisUserSession === null) {
+        context.res.setHeaders('set-cookie', 'session=;path=/;httpOnly')
+        return {
+            props: {}
         }
-    })
-    await client.connect()
-    const redisUserSession = await client.get(`session-${userId}`)
-    if(redisUserSession===null) return {
-        props: {}
     }
 
     return {
         redirect: {
             permanent: false,
-            destination: '/index'
+            destination: `/${context.query['redirect'] || ''}`
         }
     }
 }
 
 export default function SigninPage(props) {
+
+    const router = useRouter()
 
     var [username, setUsername] = useState('')
     var [password, setPassword] = useState('')
@@ -54,11 +48,11 @@ export default function SigninPage(props) {
                 password: password
             })
         })
-        .then(data => data.text())
-        .then(data => {
-            console.log(data)
-        })
-        .catch(e => console.log(e.message))
+            .then(data => data.text())
+            .then(data => {
+                router.push(`/${router.query['redirect'] || ''}`)
+            })
+            .catch(e => console.log(e.message))
     }
 
     function iSetUsername(e) {
