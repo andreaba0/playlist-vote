@@ -1,0 +1,28 @@
+{
+  "dependencies": {
+    "dotenv": "^16.0.1",
+    "next": "^12.2.2",
+    "pg": "^8.7.3",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "redis": "^4.2.0",
+    "uuid": "^8.3.2"
+  },
+  "name": "frontend",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "author": "Andrea Barchietto",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "autoprefixer": "^10.4.7",
+    "postcss": "^8.4.14",
+    "tailwindcss": "^3.1.5"
+  }
+}

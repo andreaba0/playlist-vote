@@ -1,0 +1,5 @@
+FROM postgres:14-alpine
+
+ENV POSTGRES_USER andrea
+ENV POSTGRES_PASSWORD password
+ENV POSTGRES_DB vote
