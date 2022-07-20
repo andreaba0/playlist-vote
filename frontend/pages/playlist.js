@@ -72,7 +72,7 @@ function SongRow(props) {
     function renderVote() {
         if (props.up_vote + props.down_vote < props.total_voters) return (
             <div className="flex-grow flex flex-col items-start justify-center py-1 text-blue-500 font-bold text-sm border-r-2 border-gray-700">
-                In attesa del quorum [{props.up_vote + props.down_vote}/{props.total_voters}]
+                In attesa del quorum [{props.up_vote + props.down_vote}/{props.total_voters} votanti]
             </div>
         )
         if (props.up_vote > props.down_vote) return (
@@ -128,7 +128,16 @@ function SongRow(props) {
                     </div>
                 </div>
                 {(props.is_your) ? (
-                    <div className="flex w-14 items-center justify-center cursor-pointer hover:bg-gray-100">
+                    <div
+                        className="flex w-14 items-center justify-center cursor-pointer hover:bg-gray-100"
+                        onClick={() => {
+                            props.setDeletionData({
+                                song: props.name,
+                                author: props.author
+                            })
+                            props.changePage('delete', 0)
+                        }}
+                    >
                         <MdClose size={21} />
                     </div>
                 ) : (null)}
@@ -151,7 +160,23 @@ function AddSong(props) {
 
     function submitForm(e) {
         e.preventDefault()
-        props.changePage('main', 0)
+        fetch('/api/add_song', {
+            method: 'POST',
+            body: JSON.stringify({
+                song: song,
+                author: author
+            })
+        })
+            .then(res => {
+                if (res.status === 200) props.changePage('main', 1)
+                return res.text()
+            })
+            .then(info => {
+                console.log(info)
+            })
+            .catch(e => {
+                console.log(e.message)
+            })
     }
 
     function inputSong(e) {
@@ -166,15 +191,15 @@ function AddSong(props) {
         <div className="w-full flex flex-col items-center">
             <div className="w-full">
                 <form className="w-full flex flex-col items-center" onSubmit={submitForm}>
-                    <input 
-                        onChange={inputSong} 
-                        type="text" 
-                        placeholder="Nome della canzone" 
+                    <input
+                        onChange={inputSong}
+                        type="text"
+                        placeholder="Nome della canzone"
                         className="mt-4 border-gray-600 border-b-2" />
-                    <input 
-                        onChange={inputAuthor} 
-                        type="text" 
-                        placeholder="Autore" 
+                    <input
+                        onChange={inputAuthor}
+                        type="text"
+                        placeholder="Autore"
                         className="mt-4 border-gray-600 border-b-2" />
                     <div className="w-full flex flex-row justify-center space-x-3 mt-4">
                         <div>
@@ -197,9 +222,75 @@ function AddSong(props) {
     )
 }
 
+function DeleteSong(props) {
+    var [confirm, setConfirm] = useState('')
+
+    function inputConfirm(e) {
+        setConfirm(e.target.value)
+    }
+
+    function submitForm(e) {
+        e.preventDefault()
+        if (confirm !== 'delete') return
+        fetch('/api/delete_song', {
+            method: 'POST',
+            body: JSON.stringify({
+                song: props.dataForDeletion.song,
+                author: props.dataForDeletion.author
+            })
+        })
+            .then(res => {
+                if (res.status === 200) props.changePage('main', 1)
+                return res.text()
+            })
+            .then(data => {
+                console.log(data)
+            })
+            .catch(e => {
+                console.log(e.message)
+            })
+    }
+
+    return (
+        <div className="w-full flex flex-col items-center">
+            <div className="w-full">
+                <form className="w-full flex flex-col items-center" onSubmit={submitForm}>
+                    <div className="font-bold text-sm text-gray-800">
+                        Per eliminare la canzone {props.dataForDeletion.song} di {props.dataForDeletion.author} digita 'delete'
+                    </div>
+                    <div>
+                        <input
+                            onChange={inputConfirm}
+                            type="text"
+                            placeholder="Scrivi quanto richiesto"
+                            className="mt-4 border-gray-600 border-b-2"
+                        />
+                    </div>
+                    <div className="w-full flex flex-row justify-center space-x-3 mt-4">
+                        <div>
+                            <button type="submit" className="py-2 px-4 rounded-md text-white font-bold text-sm bg-blue-600 border-2 border-blue-600">
+                                Elimina
+                            </button>
+                        </div>
+                        <div>
+                            <button
+                                onClick={() => { props.changePage('main', 0) }}
+                                className="py-2 px-4 border-2 border-gray-500 text-gray-500 font-bold text-sm rounded-md"
+                            >
+                                Annulla
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    )
+}
+
 export default function Home(props) {
     var [page, setPage] = useState('main')
     var [data, setData] = useState(props.data)
+    var [dataForDeletion, setDataForDeletion] = useState(null)
 
     function renderSongList() {
         if (page === 'main') {
@@ -216,6 +307,8 @@ export default function Home(props) {
                         is_your={obj.is_your}
                         total_voters={obj.total_voters}
                         key={uuidv4()}
+                        changePage={changePage}
+                        setDeletionData={setDeletionData}
                     />
                 )
             })
@@ -223,18 +316,34 @@ export default function Home(props) {
         }
 
         if (page === 'add') return (<AddSong changePage={changePage} />)
+        if (page === 'delete') return (
+            <DeleteSong changePage={changePage} dataForDeletion={dataForDeletion} />
+        )
     }
 
     function goToAdd() {
         changePage('add', 0)
     }
 
+    function setDeletionData(data) {
+        setDataForDeletion(data)
+    }
+
     function changePage(p, dataChanged) {
         setPage(p)
+        if (dataChanged === 1) {
+            fetch('/api/song_list')
+                .then(res => {
+                    return res.json()
+                })
+                .then(data => {
+                    setData(data)
+                })
+        }
     }
 
     function renderAddButton() {
-        if (page !== 'add') return (
+        if (page === 'main') return (
             <div className="w-full absolute bottom-0 right-0 flex flex-col items-center">
                 <div className="w-full max-w-xl relative">
                     <div onClick={goToAdd} className="flex w-14 h-14 items-center justify-center rounded-full cursor-pointer bg-emerald-500 text-white absolute bottom-4 right-4">
