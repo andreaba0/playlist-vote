@@ -4,7 +4,7 @@ import { parseCookie, parseUserSession } from "../modules/supply"
 import '../modules/client/renew'
 import { useState } from "react"
 import { v4 as uuidv4 } from "uuid"
-import { MdClose, MdAdd, MdThumbUp, MdThumbDown } from 'react-icons/md'
+import { MdClose, MdAdd, MdThumbUp, MdThumbDown, MdThumbUpOffAlt, MdThumbDownOffAlt } from 'react-icons/md'
 
 export async function getServerSideProps(context) {
     const cookies = parseCookie(context.req.headers.cookie || '')
@@ -77,7 +77,7 @@ function SongRow(props) {
             </div>
         )
         if (props.up_vote > props.down_vote) return (
-            <div className="flex-grow flex flex-col items-start justify-center py-1 text-green-500 font-bold text-sm border-r-2 border-gray-700">
+            <div className="flex-grow flex flex-col items-start justify-center py-1 text-emerald-500 font-bold text-sm border-r-2 border-gray-700">
                 Canzone approvata
             </div>
         )
@@ -91,28 +91,32 @@ function SongRow(props) {
 
     function renderUpVote() {
         if (props.your_vote === 'up') return (
-            <div className="flex w-16 items-center justify-center text-green-500 cursor-pointer hover:bg-gray-100">
+            <div className="flex w-20 flex-row items-center justify-center text-gray-700 cursor-pointer hover:bg-gray-100">
+                <div className=" font-bold px-1">{props.up_vote}</div>
                 <MdThumbUp size={21} />
             </div>
         )
 
         return (
-            <div onClick={() => { voteThisSong('up') }} className="flex w-16 items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-100">
-                <MdThumbUp size={21} />
+            <div onClick={() => { voteThisSong('up') }} className="flex w-20 flex-row items-center justify-center text-gray-700 cursor-pointer hover:bg-gray-100">
+                <div className=" font-bold px-1">{props.up_vote}</div>
+                <MdThumbUpOffAlt size={21} />
             </div>
         )
     }
 
     function renderDownVote() {
         if (props.your_vote === 'down') return (
-            <div className="flex w-16 items-center justify-center text-red-500 cursor-pointer hover:bg-gray-100">
+            <div className="flex w-20 flex-row items-center justify-center text-gray-700 cursor-pointer hover:bg-gray-100">
+                <div className=" font-bold px-1">{props.down_vote}</div>
                 <MdThumbDown size={21} />
             </div>
         )
 
         return (
-            <div onClick={() => { voteThisSong('down') }} className="flex w-16 items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-100">
-                <MdThumbDown size={21} />
+            <div onClick={() => { voteThisSong('down') }} className="flex w-20 flex-row items-center justify-center text-gray-700 cursor-pointer hover:bg-gray-100">
+                <div className=" font-bold px-1">{props.down_vote}</div>
+                <MdThumbDownOffAlt size={21} />
             </div>
         )
     }
@@ -143,7 +147,7 @@ function SongRow(props) {
             <div className="w-full flex flex-row">
                 <div className="w-3/4 flex-grow flex flex-col items-start pt-2 pl-3">
                     <div className="text-sm text-gray-800 font-bold">
-                        {props.name}{' '}-{' '}{props.author}
+                        {props.name}{' '}-{' '}<span className="text-gray-500">{props.author}</span>
                     </div>
                     <div className="text-sm text-gray-600 font-thin">
                         {(props.is_your === 1) ? 'Tu' : props.created_by}
