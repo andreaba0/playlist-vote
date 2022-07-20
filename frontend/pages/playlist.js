@@ -56,9 +56,11 @@ export async function getServerSideProps(context) {
             select count(username)
             from _user
         ) as total_voters
-        from song as s`,
+        from song as s
+        order by s.name asc`,
         [session.user_uuid]
     )
+    await pgClient.end()
 
     return {
         props: {
@@ -96,7 +98,7 @@ function SongRow(props) {
         )
 
         return (
-            <div className="flex w-16 items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-100">
+            <div onClick={() => { voteThisSong('up') }} className="flex w-16 items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-100">
                 <MdThumbUp size={21} />
             </div>
         )
@@ -110,10 +112,31 @@ function SongRow(props) {
         )
 
         return (
-            <div className="flex w-16 items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-100">
+            <div onClick={() => { voteThisSong('down') }} className="flex w-16 items-center justify-center text-gray-500 cursor-pointer hover:bg-gray-100">
                 <MdThumbDown size={21} />
             </div>
         )
+    }
+
+    function voteThisSong(vote) {
+        fetch('/api/vote_song', {
+            method: 'POST',
+            body: JSON.stringify({
+                song: props.name,
+                author: props.author,
+                vote: vote
+            })
+        })
+            .then(res => {
+                if (res.status === 200) props.changePage('main', 1)
+                return res.text()
+            })
+            .then(data => {
+                console.log(data)
+            })
+            .catch(e => {
+                console.log(e.message)
+            })
     }
 
     return (
@@ -245,6 +268,7 @@ function DeleteSong(props) {
             })
             .then(data => {
                 console.log(data)
+                //if(data==='NOT_FOUND') props.changePage('main', 1)
             })
             .catch(e => {
                 console.log(e.message)
@@ -359,7 +383,7 @@ export default function Home(props) {
     return (
         <div className="w-screen overflow-x-hidden flex flex-col items-center">
             <div className="w-full max-w-xl flex flex-col items-center bg-white pb-4">
-                <div>
+                <div className="py-4 text-4xl font-thin text-gray-700">
                     Playlist
                 </div>
                 <div className="w-full flex flex-col items-center">

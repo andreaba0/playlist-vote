@@ -22,7 +22,7 @@ export default async function addSong(req, res) {
             return
         }
         const body = req.body || null
-        if(body===null) {
+        if (body === null) {
             res.status(400).send('BODY_MALFORMED')
             return
         }
@@ -30,16 +30,23 @@ export default async function addSong(req, res) {
         const pgClient = await getPgClient()
 
         var { rows } = await pgClient.query(
-            `delete from song
-            where name=$1 and author=$2 and user_uuid=$3 returning *`,
-            [songData.song, songData.author, session.user_uuid]
+            `insert into vote (
+                song_id,
+                user_uuid,
+                vote
+            ) values (
+                (
+                    select id
+                    from song
+                    where name=$1 and author=$2
+                ),
+                $3,
+                $4
+            ) on conflict (song_id, user_uuid) do update set vote=$4 returning *`,
+            [songData.song, songData.author, session.user_uuid, songData.vote]
         )
         await pgClient.end()
-        if(rows.length>0) {
-            res.status(200).send()
-        } else {
-            res.status(400).send('NOT_FOUND')
-        }
+        res.status(200).send()
     } catch (e) {
         console.log(e.message)
         res.status(400).send('BODY_MALFORMED')

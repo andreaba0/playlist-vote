@@ -48,7 +48,8 @@ export default async function songList(req, res) {
             select count(username)
             from _user
         ) as total_voters
-        from song as s`,
+        from song as s
+        order by s.name asc`,
             [session.user_uuid]
         )
         res.status(200).send(JSON.stringify(rows))
