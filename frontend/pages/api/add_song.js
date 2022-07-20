@@ -41,7 +41,7 @@ export default async function addSong(req, res) {
             ) returning *`,
             [songData.song, songData.author, session.user_uuid]
         )
-        await pgClient.end()
+        //await pgClient.end()
         if(rows.length>0) {
             res.status(200).send()
         } else {

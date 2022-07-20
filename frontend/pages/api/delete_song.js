@@ -29,12 +29,13 @@ export default async function addSong(req, res) {
         const songData = JSON.parse(body)
         const pgClient = await getPgClient()
 
-        var { rows } = await pgClient.query(
+        var { err, rows } = await pgClient.query(
             `delete from song
             where name=$1 and author=$2 and user_uuid=$3 returning *`,
             [songData.song, songData.author, session.user_uuid]
         )
-        await pgClient.end()
+        //await pgClient.end()
+        if(err) console.log(err, err.message)
         if(rows.length>0) {
             res.status(200).send()
         } else {

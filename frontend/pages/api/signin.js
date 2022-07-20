@@ -21,7 +21,7 @@ export default async function signin(req, res) {
                 userData.username
             ]
         )
-        await client.end()
+        //await client.end()
         console.log(rows)
         if(rows.lengh===0) res.status(400).send('USER_NOT_FOUND')
         else if(rows[0].password!==userData.password) res.status(400).send('WRONG_PASSWORD')

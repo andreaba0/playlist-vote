@@ -60,7 +60,6 @@ export async function getServerSideProps(context) {
         order by s.name asc`,
         [session.user_uuid]
     )
-    await pgClient.end()
 
     return {
         props: {
@@ -267,8 +266,7 @@ function DeleteSong(props) {
                 return res.text()
             })
             .then(data => {
-                console.log(data)
-                //if(data==='NOT_FOUND') props.changePage('main', 1)
+                if(data==='NOT_FOUND') props.changePage('main', 1)
             })
             .catch(e => {
                 console.log(e.message)
@@ -368,7 +366,7 @@ export default function Home(props) {
 
     function renderAddButton() {
         if (page === 'main') return (
-            <div className="w-full absolute bottom-0 right-0 flex flex-col items-center">
+            <div className="w-full fixed z-10 bottom-0 right-0 flex flex-col items-center">
                 <div className="w-full max-w-xl relative">
                     <div onClick={goToAdd} className="flex w-14 h-14 items-center justify-center rounded-full cursor-pointer bg-emerald-500 text-white absolute bottom-4 right-4">
                         <MdAdd size={30} />
@@ -382,7 +380,7 @@ export default function Home(props) {
 
     return (
         <div className="w-screen overflow-x-hidden flex flex-col items-center">
-            <div className="w-full max-w-xl flex flex-col items-center bg-white pb-4">
+            <div className="w-full max-w-xl flex flex-col items-center bg-white pb-20">
                 <div className="py-4 text-4xl font-thin text-gray-700">
                     Playlist
                 </div>

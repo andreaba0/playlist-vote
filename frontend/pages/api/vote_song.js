@@ -45,7 +45,7 @@ export default async function addSong(req, res) {
             ) on conflict (song_id, user_uuid) do update set vote=$4 returning *`,
             [songData.song, songData.author, session.user_uuid, songData.vote]
         )
-        await pgClient.end()
+        //await pgClient.end()
         res.status(200).send()
     } catch (e) {
         console.log(e.message)
