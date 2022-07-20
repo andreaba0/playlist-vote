@@ -4,7 +4,8 @@ import { parseCookie, parseUserSession } from "../modules/supply"
 import '../modules/client/renew'
 import { useState } from "react"
 import { v4 as uuidv4 } from "uuid"
-import { MdClose, MdAdd, MdThumbUp, MdThumbDown, MdThumbUpOffAlt, MdThumbDownOffAlt } from 'react-icons/md'
+import { MdClose, MdAdd, MdThumbUp, MdThumbDown, MdThumbUpOffAlt, MdThumbDownOffAlt, MdExitToApp } from 'react-icons/md'
+import {useRouter} from 'next/router'
 
 export async function getServerSideProps(context) {
     const cookies = parseCookie(context.req.headers.cookie || '')
@@ -91,15 +92,15 @@ function SongRow(props) {
 
     function renderUpVote() {
         if (props.your_vote === 'up') return (
-            <div className="flex w-20 flex-row items-center justify-center text-gray-700 cursor-pointer hover:bg-gray-100">
+            <div className="flex flex-shrink-0 w-16 flex-row items-center justify-center text-gray-700 cursor-pointer hover:bg-gray-100">
                 <div className=" font-bold px-1">{props.up_vote}</div>
                 <MdThumbUp size={21} />
             </div>
         )
 
         return (
-            <div onClick={() => { voteThisSong('up') }} className="flex w-20 flex-row items-center justify-center text-gray-700 cursor-pointer hover:bg-gray-100">
-                <div className=" font-bold px-1">{props.up_vote}</div>
+            <div onClick={() => { voteThisSong('up') }} className="flex flex-shrink-0 w-16 flex-row items-center justify-center text-gray-700 cursor-pointer hover:bg-gray-100">
+                <div className="font-bold px-1">{props.up_vote}</div>
                 <MdThumbUpOffAlt size={21} />
             </div>
         )
@@ -107,15 +108,15 @@ function SongRow(props) {
 
     function renderDownVote() {
         if (props.your_vote === 'down') return (
-            <div className="flex w-20 flex-row items-center justify-center text-gray-700 cursor-pointer hover:bg-gray-100">
-                <div className=" font-bold px-1">{props.down_vote}</div>
+            <div className="flex flex-shrink-0 w-16 flex-row items-center justify-center text-gray-700 cursor-pointer hover:bg-gray-100">
+                <div className="font-bold px-1">{props.down_vote}</div>
                 <MdThumbDown size={21} />
             </div>
         )
 
         return (
-            <div onClick={() => { voteThisSong('down') }} className="flex w-20 flex-row items-center justify-center text-gray-700 cursor-pointer hover:bg-gray-100">
-                <div className=" font-bold px-1">{props.down_vote}</div>
+            <div onClick={() => { voteThisSong('down') }} className="flex flex-shrink-0 w-16 flex-row items-center justify-center text-gray-700 cursor-pointer hover:bg-gray-100">
+                <div className="font-bold px-1">{props.down_vote}</div>
                 <MdThumbDownOffAlt size={21} />
             </div>
         )
@@ -317,6 +318,7 @@ export default function Home(props) {
     var [page, setPage] = useState('main')
     var [data, setData] = useState(props.data)
     var [dataForDeletion, setDataForDeletion] = useState(null)
+    const router = useRouter()
 
     function renderSongList() {
         if (page === 'main') {
@@ -382,11 +384,23 @@ export default function Home(props) {
         return (null)
     }
 
+    function exit() {
+        fetch('/api/signout')
+        .then(res => {
+            if(res.status===200) router.push('/playlist')
+        })
+    }
+
     return (
         <div className="w-screen overflow-x-hidden flex flex-col items-center">
             <div className="w-full max-w-xl flex flex-col items-center bg-white pb-20">
-                <div className="py-4 text-4xl font-thin text-gray-700">
-                    Playlist
+                <div className="py-4 flex w-full flex-row justify-center text-4xl font-thin text-gray-700">
+                    <div className="flex-grow pl-2">
+                        Playlist
+                    </div>
+                    <div onClick={exit} className="w-14 flex items-center justify-center cursor-pointer hover:bg-gray-100">
+                        <MdExitToApp size={30} />
+                    </div>
                 </div>
                 <div className="w-full flex flex-col items-center">
                     {renderSongList()}

@@ -1,6 +1,7 @@
 create table _user (
     username text not null unique,
     password text not null,
+    salt text not null,
     uuid text not null,
     primary key(uuid)
 );

@@ -1,6 +1,11 @@
 import { getClient } from '../../modules/pg'
 import { getClient as getRedisClient } from '../../modules/redis'
 import {v4 as uuidv4} from 'uuid'
+import crypto from 'crypto'
+
+function hashPassword(password, salt) {
+    return crypto.createHash('sha256').update(`${password}:${salt}`).digest('hex')
+}
 
 export default async function signin(req, res) {
     const client = await getClient()
@@ -15,16 +20,14 @@ export default async function signin(req, res) {
     try {
         const userData = JSON.parse(body)
         const {rows} = await client.query(
-            `select uuid, password
+            `select uuid, password, salt
             from _user
             where username=$1`, [
                 userData.username
             ]
         )
-        //await client.end()
-        console.log(rows)
         if(rows.lengh===0) res.status(400).send('USER_NOT_FOUND')
-        else if(rows[0].password!==userData.password) res.status(400).send('WRONG_PASSWORD')
+        else if(rows[0].password!==hashPassword(userData.password, rows[0].salt)) res.status(400).send('WRONG_PASSWORD')
         else {
             const user_uuid=rows[0].uuid
             const session_uuid = uuidv4()
