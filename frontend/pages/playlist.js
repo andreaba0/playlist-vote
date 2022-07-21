@@ -8,7 +8,6 @@ import { MdClose, MdAdd, MdThumbUp, MdThumbDown, MdThumbUpOffAlt, MdThumbDownOff
 import {useRouter} from 'next/router'
 import { SongRow } from "../components/song_row"
 import { AddSong } from "../components/add_song"
-import { AddComment, CommentsPage } from "../components/comments_page"
 
 export async function getServerSideProps(context) {
     const cookies = parseCookie(context.req.headers.cookie || '')

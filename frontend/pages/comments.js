@@ -121,28 +121,28 @@ function CommentRow(props) {
 
         return (
             <div className="w-full flex flex-col items-center mt-4 bg-gray-50 py-3">
-            <div className="py-2 text-base text-gray-800 font-medium text-left box-border w-full pl-4">
-                {author}
-            </div>
-            <div className="w-full flex flex-row justify-start">
-                <div className="w-14"></div>
-                <div className="border-emerald-400 border-l-2 border-solid flex flex-grow flex-col items-start pl-3 py-2 bg-slate-100">
-                    <div className="text-gray-700 font-medium text-sm">
-                        {reply_to_author}
-                    </div>
-                    <div className="text-gray-600 font-normal text-sm">
-                        {replied_message}
-                    </div>
+                <div className="py-2 text-base text-gray-800 font-medium text-left box-border w-full pl-4">
+                    {author}
                 </div>
-                <div className="w-14"></div>
+                <div className="w-full flex flex-row justify-start">
+                    <div className="w-14"></div>
+                    <div className="border-emerald-400 border-l-2 border-solid flex flex-grow flex-col items-start pl-3 py-2 bg-slate-100">
+                        <div className="text-gray-700 font-medium text-sm">
+                            {reply_to_author}
+                        </div>
+                        <div className="text-gray-600 font-normal text-sm">
+                            {replied_message}
+                        </div>
+                    </div>
+                    <div className="w-14"></div>
+                </div>
+                <div className="w-full pl-12 mt-2 text-gray-600 text-sm font-normal">
+                    {comment}
+                </div>
+                <div onClick={replyEvent} className="w-full pl-12 mt-1 text-blue-600 text-sm font-medium cursor-pointer">
+                    Replica
+                </div>
             </div>
-            <div className="w-full pl-12 mt-2 text-gray-600 text-sm font-normal">
-                {comment}
-            </div>
-            <div onClick={replyEvent} className="w-full pl-12 mt-1 text-blue-600 text-sm font-medium cursor-pointer">
-                Replica
-            </div>
-        </div>
         )
     }
 
@@ -180,7 +180,13 @@ export default function CommentsPage(props) {
     function changePage(p, dataChanged) {
         setPage(p)
         if (dataChanged === 1) {
-            fetch('/api/get_comments')
+            fetch('/api/get_comments', {
+                method: 'POST',
+                body: JSON.stringify({
+                    song: props.song,
+                    author: props.author
+                })
+            })
                 .then(res => {
                     return res.json()
                 })
@@ -218,7 +224,7 @@ export default function CommentsPage(props) {
             </div>
         )
 
-        if(page==='create') return (
+        if (page === 'create') return (
             <AddComment
                 params={params}
                 changePage={changePage}
@@ -257,7 +263,6 @@ export default function CommentsPage(props) {
 }
 
 function AddComment(props) {
-    console.log(props)
     var [message, setMessage] = useState(null)
 
     function submitForm(e) {
@@ -272,10 +277,10 @@ function AddComment(props) {
             })
         })
             .then(res => {
+                if (res.status === 200) props.changePage('main', 1)
                 return res.text()
             })
             .then(data => {
-                console.log(data)
             })
             .catch(e => {
                 console.log(e.message)
@@ -286,17 +291,51 @@ function AddComment(props) {
         setMessage(e.target.value)
     }
 
+    function renderReply() {
+        if (typeof props.params.uuid_comment === 'undefined') return (null)
+
+        return (
+            <div className="flex flex-col w-full items-center">
+                <div className="w-full py-2 text-sm font-medium text-gray-600 text-center">
+                    In risposta a
+                </div>
+                <div className="w-full p-6 text-sm font-normal text-gray-600 mt-2 text-center">
+                    {props.params.comment}
+                </div>
+            </div>
+        )
+    }
+
     return (
         <div className="w-full flex flex-col items-center">
             <div className="w-full text-center text-lg text-gray-800 font-thin">
                 Inserisci un commento
             </div>
-            <div className="w-full">
-                <form onSubmit={submitForm}>
-                    <input onChange={messageInputChange} type="text" placeholder="Il tuo commento" />
-                    <button type="submit">
-                        pubblica
-                    </button>
+            {renderReply()}
+            <div className="w-full mt-6">
+                <form onSubmit={submitForm} className="flex flex-col items-center">
+                    <div className="w-full flex flex-row justify-center">
+                        <div className="w-9"></div>
+                        <textarea
+                            onChange={messageInputChange}
+                            type="text"
+                            placeholder="Il tuo commento"
+                            className="flex-grow"
+                        />
+                        <div className="w-9"></div>
+                    </div>
+                    <div className="w-full flex flex-row justify-center space-x-4 mt-6">
+                        <div>
+                            <button type="submit" className="border-solid border-2 bg-blue-600 rounded-md border-blue-600 text-white font-bold text-sm px-5 py-3">
+                                pubblica
+                            </button>
+                        </div>
+                        <div>
+                            <button onClick={() => { props.changePage('main', 0) }} className="border-solid border-2 border-gray-700 text-gray-700 py-3 px-5 text-sm font-bold rounded-md">
+                                Annulla
+                            </button>
+                        </div>
+                    </div>
                 </form>
             </div>
         </div>
