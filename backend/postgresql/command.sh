@@ -11,7 +11,7 @@ elif [ $1 == "start-prod" ]; then
     docker stop vote_server
     docker rm vote_server
     docker build --tag vote_server_image .
-    docker run -p 127.0.0.1:5432:5432 --name vote_server -d vote_server_image:latest
+    docker run -p $2:5432:5432 --name vote_server -d vote_server_image:latest
 elif [ $1 == "stop-server" ]; then
     echo "Stopping the server..."
     docker stop vote_server

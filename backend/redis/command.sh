@@ -15,7 +15,7 @@ elif [ $1 == "start-prod" ]; then
     docker stop redis_server
     docker rm redis_server
     docker build --tag redis_server_image .
-    docker run -p 127.0.0.1:20000:6379 --name redis_server -d redis_server_image:latest
+    docker run -p $2:20000:6379 --name redis_server -d redis_server_image:latest
 else
     echo "Comando sconosciuto";
 fi
