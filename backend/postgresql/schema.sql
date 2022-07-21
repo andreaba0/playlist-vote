@@ -24,6 +24,28 @@ create table vote (
     primary key(song_id, user_uuid)
 );
 
+create table comment (
+    uuid text not null,
+    song_id int not null,
+    user_uuid text not null,
+    message text not null,
+    reply_to text,
+    created_at timestamptz not null default now(),
+    primary key(uuid)
+);
+
+alter table comment
+add foreign key (song_id) references song(id)
+on update cascade on delete cascade;
+
+alter table comment
+add foreign key (user_uuid) references _user(uuid)
+on update cascade on delete cascade;
+
+alter table comment
+add foreign key (reply_to) references comment(uuid)
+on update cascade on delete cascade;
+
 alter table song
 add foreign key (user_uuid) references _user(uuid)
 on update cascade on delete cascade;

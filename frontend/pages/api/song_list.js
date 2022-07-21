@@ -47,7 +47,11 @@ export default async function songList(req, res) {
         ) as is_your, (
             select count(username)
             from _user
-        ) as total_voters
+        ) as total_voters, (
+            select count(uuid)
+            from comment
+            where song_id=s.id
+        ) as comments_length
         from song as s
         order by s.name asc`,
             [session.user_uuid]

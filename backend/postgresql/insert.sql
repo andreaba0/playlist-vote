@@ -16,14 +16,14 @@ insert into _user (username, password, salt, uuid) values (
     'luca',
     '61008f2380a7ad0fe7efc8ef4642e45838c8ebb915b4f246666f43306f4ec838',
     '5d78f63ae31d48bffcbf33bb',
-    'c652ffc3-dd8e-4d18-b18e-1f1d3d69c6c7'
+    'c652ffc3-bbbb-4d18-b18e-1f1d3d69c6c7'
 );
 
 insert into _user (username, password, salt, uuid) values (
     'alessandro',
     '4cae84bad7bccb3cbacef79aec3d7c64c519c1cf0426e0a3dd1af2969ddb1ace',
     'ff78f6baff1d48bffefe77ca',
-    'c652ffc3-dd8e-4d18-b18e-1f1d3d69c6c7'
+    'c652ffc3-dd8e-ffff-b18e-1f1d3d69c6c7'
 );
 
 insert into song (

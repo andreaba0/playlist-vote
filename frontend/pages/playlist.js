@@ -6,6 +6,9 @@ import { useState } from "react"
 import { v4 as uuidv4 } from "uuid"
 import { MdClose, MdAdd, MdThumbUp, MdThumbDown, MdThumbUpOffAlt, MdThumbDownOffAlt, MdExitToApp } from 'react-icons/md'
 import {useRouter} from 'next/router'
+import { SongRow } from "../components/song_row"
+import { AddSong } from "../components/add_song"
+import { AddComment, CommentsPage } from "../components/comments_page"
 
 export async function getServerSideProps(context) {
     const cookies = parseCookie(context.req.headers.cookie || '')
@@ -25,7 +28,7 @@ export async function getServerSideProps(context) {
         return {
             redirect: {
                 permanent: false,
-                destination: '/signin?redirect=index'
+                destination: '/signin?redirect=playlist'
             }
         }
     }
@@ -69,185 +72,7 @@ export async function getServerSideProps(context) {
     }
 }
 
-function SongRow(props) {
 
-    function renderVote() {
-        if (props.up_vote + props.down_vote < props.total_voters) return (
-            <div className="flex-grow flex flex-col items-start justify-center py-1 text-blue-500 font-bold text-sm border-r-2 border-gray-700">
-                In attesa del quorum [{props.up_vote + props.down_vote}/{props.total_voters} votanti]
-            </div>
-        )
-        if (props.up_vote > props.down_vote) return (
-            <div className="flex-grow flex flex-col items-start justify-center py-1 text-emerald-500 font-bold text-sm border-r-2 border-gray-700">
-                Canzone approvata
-            </div>
-        )
-
-        return (
-            <div className="flex-grow flex flex-col items-start justify-center py-1 text-red-500 font-bold text-sm border-r-2 border-gray-700">
-                Canzone cassata
-            </div>
-        )
-    }
-
-    function renderUpVote() {
-        if (props.your_vote === 'up') return (
-            <div className="flex flex-shrink-0 w-16 flex-row items-center justify-center text-gray-700 cursor-pointer hover:bg-gray-100">
-                <div className=" font-bold px-1">{props.up_vote}</div>
-                <MdThumbUp size={21} />
-            </div>
-        )
-
-        return (
-            <div onClick={() => { voteThisSong('up') }} className="flex flex-shrink-0 w-16 flex-row items-center justify-center text-gray-700 cursor-pointer hover:bg-gray-100">
-                <div className="font-bold px-1">{props.up_vote}</div>
-                <MdThumbUpOffAlt size={21} />
-            </div>
-        )
-    }
-
-    function renderDownVote() {
-        if (props.your_vote === 'down') return (
-            <div className="flex flex-shrink-0 w-16 flex-row items-center justify-center text-gray-700 cursor-pointer hover:bg-gray-100">
-                <div className="font-bold px-1">{props.down_vote}</div>
-                <MdThumbDown size={21} />
-            </div>
-        )
-
-        return (
-            <div onClick={() => { voteThisSong('down') }} className="flex flex-shrink-0 w-16 flex-row items-center justify-center text-gray-700 cursor-pointer hover:bg-gray-100">
-                <div className="font-bold px-1">{props.down_vote}</div>
-                <MdThumbDownOffAlt size={21} />
-            </div>
-        )
-    }
-
-    function voteThisSong(vote) {
-        fetch('/api/vote_song', {
-            method: 'POST',
-            body: JSON.stringify({
-                song: props.name,
-                author: props.author,
-                vote: vote
-            })
-        })
-            .then(res => {
-                if (res.status === 200) props.changePage('main', 1)
-                return res.text()
-            })
-            .then(data => {
-                console.log(data)
-            })
-            .catch(e => {
-                console.log(e.message)
-            })
-    }
-
-    return (
-        <div className="w-full flex flex-col border-b-2 border-dotted border-gray-500">
-            <div className="w-full flex flex-row">
-                <div className="w-3/4 flex-grow flex flex-col items-start pt-2 pl-3">
-                    <div className="text-sm text-gray-800 font-bold">
-                        {props.name}{' '}-{' '}<span className="text-gray-500">{props.author}</span>
-                    </div>
-                    <div className="text-sm text-gray-600 font-thin">
-                        {(props.is_your === 1) ? 'Tu' : props.created_by}
-                    </div>
-                </div>
-                {(props.is_your) ? (
-                    <div
-                        className="flex w-14 items-center justify-center cursor-pointer hover:bg-gray-100"
-                        onClick={() => {
-                            props.setDeletionData({
-                                song: props.name,
-                                author: props.author
-                            })
-                            props.changePage('delete', 0)
-                        }}
-                    >
-                        <MdClose size={21} />
-                    </div>
-                ) : (null)}
-            </div>
-            <div className="w-full flex flex-row pb-2 pl-3">
-                {renderVote()}
-                {renderUpVote()}
-                {renderDownVote()}
-                <div className="w-14">
-
-                </div>
-            </div>
-        </div>
-    )
-}
-
-function AddSong(props) {
-    var [song, setSong] = useState('')
-    var [author, setAuthor] = useState('')
-
-    function submitForm(e) {
-        e.preventDefault()
-        fetch('/api/add_song', {
-            method: 'POST',
-            body: JSON.stringify({
-                song: song,
-                author: author
-            })
-        })
-            .then(res => {
-                if (res.status === 200) props.changePage('main', 1)
-                return res.text()
-            })
-            .then(info => {
-                console.log(info)
-            })
-            .catch(e => {
-                console.log(e.message)
-            })
-    }
-
-    function inputSong(e) {
-        setSong(e.target.value)
-    }
-
-    function inputAuthor(e) {
-        setAuthor(e.target.value)
-    }
-
-    return (
-        <div className="w-full flex flex-col items-center">
-            <div className="w-full">
-                <form className="w-full flex flex-col items-center" onSubmit={submitForm}>
-                    <input
-                        onChange={inputSong}
-                        type="text"
-                        placeholder="Nome della canzone"
-                        className="mt-4 border-gray-600 border-b-2" />
-                    <input
-                        onChange={inputAuthor}
-                        type="text"
-                        placeholder="Autore"
-                        className="mt-4 border-gray-600 border-b-2" />
-                    <div className="w-full flex flex-row justify-center space-x-3 mt-4">
-                        <div>
-                            <button type="submit" className="py-2 px-4 rounded-md text-white font-bold text-sm bg-blue-600 border-2 border-blue-600">
-                                Aggiungi
-                            </button>
-                        </div>
-                        <div>
-                            <button
-                                onClick={() => { props.changePage('main', 0) }}
-                                className="py-2 px-4 border-2 border-gray-500 text-gray-500 font-bold text-sm rounded-md"
-                            >
-                                Annulla
-                            </button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-    )
-}
 
 function DeleteSong(props) {
     var [confirm, setConfirm] = useState('')
@@ -262,8 +87,8 @@ function DeleteSong(props) {
         fetch('/api/delete_song', {
             method: 'POST',
             body: JSON.stringify({
-                song: props.dataForDeletion.song,
-                author: props.dataForDeletion.author
+                song: props.params.song,
+                author: props.params.author
             })
         })
             .then(res => {
@@ -283,7 +108,7 @@ function DeleteSong(props) {
             <div className="w-full">
                 <form className="w-full flex flex-col items-center" onSubmit={submitForm}>
                     <div className="font-bold text-sm text-gray-800">
-                        Per eliminare la canzone {props.dataForDeletion.song} di {props.dataForDeletion.author} digita 'delete'
+                        Per eliminare la canzone {props.params.song} di {props.params.author} digita 'delete'
                     </div>
                     <div>
                         <input
@@ -317,11 +142,12 @@ function DeleteSong(props) {
 export default function Home(props) {
     var [page, setPage] = useState('main')
     var [data, setData] = useState(props.data)
-    var [dataForDeletion, setDataForDeletion] = useState(null)
+    var [dataAsParams, setDataAsParams] = useState(null)
     const router = useRouter()
 
     function renderSongList() {
-        if (page === 'main') {
+        const p = page
+        if (p === 'main') {
             const elem = []
             data.map((obj) => {
                 elem.push(
@@ -336,17 +162,20 @@ export default function Home(props) {
                         total_voters={obj.total_voters}
                         key={uuidv4()}
                         changePage={changePage}
-                        setDeletionData={setDeletionData}
+                        setParams={setDataAsParams}
                     />
                 )
             })
             return elem
         }
 
-        if (page === 'add') return (<AddSong changePage={changePage} />)
-        if (page === 'delete') return (
-            <DeleteSong changePage={changePage} dataForDeletion={dataForDeletion} />
+        if (p === 'add') return (<AddSong changePage={changePage} />)
+        if (p === 'delete') return (
+            <DeleteSong changePage={changePage} params={dataAsParams} />
         )
+        if(p==='comments') {
+            router.push(`/comments?song=${dataAsParams.name}&author=${dataAsParams.author}`)
+        }
     }
 
     function goToAdd() {
