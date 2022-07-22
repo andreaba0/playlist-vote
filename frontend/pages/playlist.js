@@ -173,7 +173,7 @@ export default function Home(props) {
             <DeleteSong changePage={changePage} params={dataAsParams} />
         )
         if(p==='comments') {
-            router.push(`/comments?song=${dataAsParams.name}&author=${dataAsParams.author}`)
+            router.push(`/comment/list?song=${dataAsParams.name}&author=${dataAsParams.author}`)
         }
     }
 
