@@ -88,6 +88,17 @@ export default function DeleteSong(props) {
         })
     }
 
+    function displayTextForDeletion() {
+        var word = 'delete'
+        var res = []
+        for(var c of word) res.push(
+            <div className="px-2 py-1 text-base font-bold text-gray-600 bg-slate-100">
+                {c}
+            </div>
+        )
+        return res
+    }
+
     return (
         <div className="w-screen overflow-x-hidden flex flex-col items-center">
             <div className="w-full max-w-xl flex flex-col items-center bg-white pb-20">
@@ -104,7 +115,21 @@ export default function DeleteSong(props) {
                         <div className="w-full">
                             <form className="w-full flex flex-col items-center" onSubmit={submitForm}>
                                 <div className="font-bold text-sm text-gray-800">
-                                    Per eliminare la canzone {songName} di {songAuthor} digita 'delete'
+                                    Per eliminare
+                                </div>
+                                <div className="flex flex-row justify-center mt-3">
+                                    <div className="w-12"></div>
+                                    <div className="flex-grow py-2 px-4 rounded-md bg-slate-100 text-left text-md font-bold">
+                                        <span className="text-gray-700">{songName}{' '}-{' '}</span>
+                                        <span className="text-gray-500">{songAuthor}</span>
+                                    </div>
+                                    <div className="w-12"></div>
+                                </div>
+                                <div className="font-bold text-sm text-gray-800 mt-6">
+                                    digita
+                                </div>
+                                <div className="w-full flex flex-row justify-center space-x-2 mt-2">
+                                    {displayTextForDeletion()}
                                 </div>
                                 <div>
                                     <input

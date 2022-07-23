@@ -1,6 +1,9 @@
 export async function getServerSideProps(context) {
     return {
-        props: {}
+        redirect: {
+            permanent: false,
+            destination: '/playlist/list'
+        }
     }
 }
 

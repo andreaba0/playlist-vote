@@ -22,7 +22,7 @@ export async function getServerSideProps(context) {
     if (userAccessCookie === null) return {
         redirect: {
             permanent: false,
-            destination: '/signin?redirect=playlist'
+            destination: '/signin?redirect=playlist/list'
         }
     }
     const session = parseUserSession(userAccessCookie)
