@@ -174,7 +174,7 @@ export default function CommentsPage(props) {
                     <div className="flex-grow text-left pl-3 text-gray-800 font-medium text-lg">
                         Commenti
                     </div>
-                    <div onClick={() => { router.push('/playlist') }} className="w-14 flex items-center justify-center text-gray-800 hover:bg-gray-100">
+                    <div onClick={() => { router.push('/playlist/list') }} className="w-14 flex items-center justify-center text-gray-800 hover:bg-gray-100">
                         <MdClose size={30} />
                     </div>
                 </div>
@@ -198,7 +198,7 @@ export default function CommentsPage(props) {
     function exit() {
         fetch('/api/signout')
             .then(res => {
-                if (res.status === 200) router.push('/playlist')
+                if (res.status === 200) router.push('/playlist/list')
             })
     }
 

@@ -34,7 +34,7 @@ export async function getServerSideProps(context) {
         return {
             redirect: {
                 permanent: false,
-                destination: '/signin?redirect=playlist'
+                destination: '/signin?redirect=playlist/list'
             }
         }
     }
@@ -133,7 +133,7 @@ export default function AddComment(props) {
     function exit() {
         fetch('/api/signout')
             .then(res => {
-                if (res.status === 200) router.push('/playlist')
+                if (res.status === 200) router.push('/playlist/list')
             })
     }
 
