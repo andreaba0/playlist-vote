@@ -6,6 +6,8 @@ import { useState } from "react"
 import { v4 as uuidv4 } from "uuid"
 import { MdClose, MdAdd, MdThumbUp, MdThumbDown, MdThumbUpOffAlt, MdThumbDownOffAlt, MdExitToApp } from 'react-icons/md'
 import { useRouter } from 'next/router'
+import { Menu } from "@/Components/menu"
+import { Page } from "@/Components/page"
 
 export async function getServerSideProps(context) {
     const songName = context.query.song || null
@@ -178,20 +180,10 @@ export default function AddComment(props) {
     }
 
     return (
-        <div className="w-screen overflow-x-hidden flex flex-col items-center">
-            <div className="w-full max-w-xl flex flex-col items-center bg-white pb-20">
-                <div className="py-4 flex w-full flex-row justify-center text-4xl font-thin text-gray-700">
-                    <div className="flex-grow pl-2">
-                        Playlist
-                    </div>
-                    <div onClick={exit} className="w-14 flex items-center justify-center cursor-pointer hover:bg-gray-100">
-                        <MdExitToApp size={30} />
-                    </div>
-                </div>
-                <div className="w-full flex flex-col items-center">
-                    {render()}
-                </div>
-            </div>
-        </div>
+        <Page menu={
+            <Menu title="Nuovo commento" />
+        }>
+            {render()}
+        </Page>
     )
 }

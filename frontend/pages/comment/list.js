@@ -4,9 +4,11 @@ import { parseCookie, parseUserSession } from "../../modules/supply"
 import '../../modules/client/renew'
 import { useState } from "react"
 import { v4 as uuidv4 } from "uuid"
-import { MdClose, MdAdd, MdThumbUp, MdThumbDown, MdThumbUpOffAlt, MdThumbDownOffAlt, MdExitToApp, MdReply } from 'react-icons/md'
-import {FaHeart, FaRegHeart} from 'react-icons/fa'
+import { MdClose, MdAdd, MdThumbUp, MdThumbDown, MdThumbUpOffAlt, MdThumbDownOffAlt, MdExitToApp, MdReply, MdOutlineAddComment } from 'react-icons/md'
+import { FaHeart, FaRegHeart } from 'react-icons/fa'
 import { useRouter } from 'next/router'
+import { Page } from "@/Components/page"
+import { Menu } from "@/Components/menu"
 
 export async function getServerSideProps(context) {
     const songName = context.query.song || null
@@ -115,7 +117,7 @@ function CommentRow(props) {
         return (
             <div className="flex flex-row justify-center w-full pt-1">
                 <div className="w-4"></div>
-                <div className="flex flex-grow flex-col items-center border-blue-600 border-l-4 bg-slate-50">
+                <div className="flex flex-grow flex-col items-center border-gray-600 border-l-4 bg-slate-50">
                     <div className="w-full box-border pl-4 text-xs text-gray-500 font-bold pt-1">
                         {reply_to_author}
                     </div>
@@ -129,11 +131,11 @@ function CommentRow(props) {
     }
 
     function renderLikeIcon() {
-        if(you_like===1) return (<div onClick={() =>likeApi(0)}>
+        if (you_like === 1) return (<div onClick={() => likeApi(0)}>
             <FaHeart size={16} />
         </div>)
 
-        return (<div onClick={() =>likeApi(1)}>
+        return (<div onClick={() => likeApi(1)}>
             <FaRegHeart size={16} />
         </div>)
     }
@@ -146,14 +148,14 @@ function CommentRow(props) {
                 like: status
             })
         })
-        .then(res => {
-            if(res.status===200) props.onLike()
-            res.text()
-        })
-        .then(data=> {
-            
-        })
-        .catch(e=> {console.log(e.message)})
+            .then(res => {
+                if (res.status === 200) props.onLike()
+                res.text()
+            })
+            .then(data => {
+
+            })
+            .catch(e => { console.log(e.message) })
     }
 
     return (
@@ -229,13 +231,13 @@ export default function CommentsPage(props) {
                 author: props.author
             })
         })
-        .then(res=>{
-            return res.json()
-        })
-        .then(data=> {
-            setComments(data)
-        })
-        .catch(e=>{console.log(e.message)})
+            .then(res => {
+                return res.json()
+            })
+            .then(data => {
+                setComments(data)
+            })
+            .catch(e => { console.log(e.message) })
     }
 
     function render() {
@@ -252,14 +254,21 @@ export default function CommentsPage(props) {
                 <div className="w-full flex flex-col space-y-12">
                     {renderComments()}
                 </div>
-                <div className="w-full py-4 flex flex-col items-center">
+            </div>
+        )
+    }
+
+    function renderAbsoluteMenu() {
+        return (
+            <div className="w-full fixed z-10 bottom-0 right-0 flex flex-col items-center">
+                <div className="w-full max-w-xl relative">
                     <div
                         onClick={() => {
                             router.push(`/comment/add?song=${props.song}&author=${props.author}`)
                         }}
-                        className="px-4 py-2 bg-blue-600 text-white font-bold text-sm rounded-md cursor-pointer"
+                        className="bg-blue-600 w-14 h-14 flex items-center justify-center rounded-full text-white font-bold text-sm cursor-pointer absolute right-4 bottom-4"
                     >
-                        Commenta
+                        <MdOutlineAddComment size={21} />
                     </div>
                 </div>
             </div>
@@ -274,22 +283,12 @@ export default function CommentsPage(props) {
     }
 
     return (
-        <div className="w-screen overflow-x-hidden flex flex-col items-center">
-            <div className="w-full max-w-xl flex flex-col items-center bg-white pb-20">
-                <div className="py-4 flex w-full flex-row justify-center text-4xl font-thin text-gray-700">
-                    <div className="flex-grow pl-2">
-                        Playlist
-                    </div>
-                    <div onClick={exit} className="w-14 flex items-center justify-center cursor-pointer hover:bg-gray-100">
-                        <MdExitToApp size={30} />
-                    </div>
-                </div>
-                <div className="w-full flex flex-col items-center">
-                    {render()}
-                </div>
-            </div>
-        </div>
+        <Page menu={
+            <Menu title="Commenti" />
+        } absoluteMenu={
+            renderAbsoluteMenu()
+        }>
+            {render()}
+        </Page>
     )
-
-
 }

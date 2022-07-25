@@ -6,6 +6,8 @@ import { useState } from "react"
 import { v4 as uuidv4 } from "uuid"
 import { MdClose, MdAdd, MdThumbUp, MdThumbDown, MdThumbUpOffAlt, MdThumbDownOffAlt, MdExitToApp, MdOutlineModeComment } from 'react-icons/md'
 import { useRouter } from 'next/router'
+import { Page } from "@/Components/page"
+import { Menu } from "@/Components/menu"
 
 export async function getServerSideProps(context) {
     const cookies = parseCookie(context.req.headers.cookie || '')
@@ -233,29 +235,13 @@ export default function Home(props) {
         )
     }
 
-    function exit() {
-        fetch('/api/signout')
-            .then(res => {
-                if (res.status === 200) router.push('/playlist')
-            })
-    }
-
     return (
-        <div className="w-screen overflow-x-hidden flex flex-col items-center">
-            <div className="w-full max-w-xl flex flex-col items-center bg-white pb-20">
-                <div className="py-4 flex w-full flex-row justify-center text-4xl font-thin text-gray-700">
-                    <div className="flex-grow pl-2">
-                        Playlist
-                    </div>
-                    <div onClick={exit} className="w-14 flex items-center justify-center cursor-pointer hover:bg-gray-100">
-                        <MdExitToApp size={30} />
-                    </div>
-                </div>
-                <div className="w-full flex flex-col items-center">
-                    {renderSongList()}
-                </div>
-            </div>
-            {renderAddButton()}
-        </div>
+        <Page absoluteMenu={
+            renderAddButton()
+        } menu={
+            <Menu title="Playlist - brani" />
+        }>
+            {renderSongList()}
+        </Page>
     )
 }
