@@ -4,6 +4,7 @@ WORKDIR /app
 COPY package*.json ./
 COPY postcss.config.js .
 COPY tailwind.config.js .
+COPY jsconfig.json .
 
 RUN npm install
 
