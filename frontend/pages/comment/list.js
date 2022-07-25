@@ -9,6 +9,7 @@ import { FaHeart, FaRegHeart } from 'react-icons/fa'
 import { useRouter } from 'next/router'
 import { Page } from "@/Components/page"
 import { Menu } from "@/Components/menu"
+import { HeadComponent } from "@/Components/head"
 
 export async function getServerSideProps(context) {
     const songName = context.query.song || null
@@ -51,6 +52,7 @@ export async function getServerSideProps(context) {
                 where com.user_uuid=$3 and com.uuid=c.uuid
             ) as is_you,
             c.uuid as comment_uuid,
+            extract(epoch from (now() - c.created_at)) as created_at,
             c.user_uuid as uuid_author,
             (
                 select u.username
@@ -108,6 +110,7 @@ function CommentRow(props) {
     const replied_message = props.data.replied_message || null
     const like_number = props.data.comment_like || 0
     const you_like = props.data.you_like || 0
+    const created_at = props.data.created_at
     const replyEvent = () => {
         router.push(`/comment/add?song=${props.song}&author=${props.author}&reply_to=${comment_uuid}`)
     }
@@ -131,7 +134,7 @@ function CommentRow(props) {
     }
 
     function renderLikeIcon() {
-        if (you_like === 1) return (<div onClick={() => likeApi(0)}>
+        if (you_like === 1) return (<div className="text-red-500" onClick={() => likeApi(0)}>
             <FaHeart size={16} />
         </div>)
 
@@ -158,12 +161,35 @@ function CommentRow(props) {
             .catch(e => { console.log(e.message) })
     }
 
+    function parseTimeCreated() {
+        const t = parseInt(created_at)
+        if(t===0) return "Adesso"
+        if(t<60&&t===1) return `${t} secondo fa`
+        if(t<60) return `${t} secondi fa`
+        const minutes = parseInt(t/60)
+        if(minutes<60&&minutes===1) return `${minutes} minuto fa`
+        if(minutes<60) return `${minutes} minuti fa`
+
+        const hours = parseInt(minutes/60)
+        if(hours<24&&hours===1) return `${hours} ora fa`
+        if(hours<24) return `${hours} ore fa`
+
+        const days = parseInt(hours/24)
+        if(days===1) return `${days} giorno fa`
+        return `${days} giorni fa`
+    }
+
     return (
         <div className="flex flex-row justify-center bg-gray-100 py-3">
             <div className="w-12"></div>
             <div className="flex flex-col w-full items-center rounded-md overflow-x-hidden">
-                <div className="w-full box-border pl-4 text-sm font-bold text-gray-700">
-                    {author}
+                <div className="w-full flex flex-row justify-start">
+                    <div className="pl-4 text-sm font-bold text-gray-700">
+                        {(is_you===1) ? 'Tu' : author}
+                    </div>
+                    <div className="text-sm font-medium text-gray-400 pl-5">
+                        {parseTimeCreated()}
+                    </div>
                 </div>
                 <div className="w-full h-2 flex"></div>
                 {renderRepliedTo()}
@@ -287,6 +313,8 @@ export default function CommentsPage(props) {
             <Menu title="Commenti" />
         } absoluteMenu={
             renderAbsoluteMenu()
+        } head={
+            <HeadComponent title="Commenti" />
         }>
             {render()}
         </Page>

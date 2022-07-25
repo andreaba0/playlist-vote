@@ -8,6 +8,7 @@ import { MdClose, MdAdd, MdThumbUp, MdThumbDown, MdThumbUpOffAlt, MdThumbDownOff
 import { useRouter } from 'next/router'
 import { Page } from "@/Components/page"
 import { Menu } from "@/Components/menu"
+import { HeadComponent } from "@/Components/head"
 
 export async function getServerSideProps(context) {
     const cookies = parseCookie(context.req.headers.cookie || '')
@@ -240,6 +241,8 @@ export default function Home(props) {
             renderAddButton()
         } menu={
             <Menu title="Playlist - brani" />
+        } head={
+            <HeadComponent title="Playlist - brani" />
         }>
             {renderSongList()}
         </Page>

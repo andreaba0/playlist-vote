@@ -8,6 +8,7 @@ import { MdClose, MdAdd, MdThumbUp, MdThumbDown, MdThumbUpOffAlt, MdThumbDownOff
 import { useRouter } from 'next/router'
 import { Menu } from "@/Components/menu"
 import { Page } from "@/Components/page"
+import { HeadComponent } from "@/Components/head"
 
 export async function getServerSideProps(context) {
     const songName = context.query.song || null
@@ -182,6 +183,8 @@ export default function AddComment(props) {
     return (
         <Page menu={
             <Menu title="Nuovo commento" />
+        } head={
+            <HeadComponent title="Aggiungi commento" />
         }>
             {render()}
         </Page>

@@ -37,13 +37,13 @@ export default async function getComments(req, res) {
                     where com.user_uuid=$3 and com.uuid=c.uuid
                 ) as is_you,
                 c.uuid as comment_uuid,
+                extract(epoch from (now() - c.created_at)) as created_at,
                 c.user_uuid as uuid_author,
                 (
                     select u.username
                     from _user as u
                     where u.uuid=c.user_uuid
                 ) as author,
-                c.created_at as created_at,
                 c.message as comment,
                 c.reply_to as reply_to_id, 
                 (

@@ -7,6 +7,7 @@ import { MdClose, MdAdd, MdThumbUp, MdThumbDown, MdThumbUpOffAlt, MdThumbDownOff
 import { useRouter } from 'next/router'
 import { Page } from "@/Components/page"
 import { Menu } from "@/Components/menu"
+import { HeadComponent } from "@/Components/head"
 
 export async function getServerSideProps(context) {
     const cookies = parseCookie(context.req.headers.cookie || '')
@@ -80,6 +81,8 @@ export default function AddSong(props) {
     return (
         <Page menu={
             <Menu title="Aggiungi brano" />
+        } head={
+            <HeadComponent title="Aggiungi brano" />
         }>
             <div className="w-full flex flex-col items-center">
                 <div className="w-full">
