@@ -85,7 +85,7 @@ export async function getServerSideProps(context) {
                 from song
                 where song.name=$1 and song.author=$2
             )
-            order by created_at asc`,
+            order by created_at desc`,
         [songName, songAuthor, session.user_uuid]
     )
 

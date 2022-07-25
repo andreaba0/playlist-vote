@@ -70,7 +70,7 @@ export default async function getComments(req, res) {
                     from song
                     where song.name=$1 and song.author=$2
                 )
-                order by created_at asc`,
+                order by created_at desc`,
             [songData.song, songData.author, session.user_uuid]
         )
         res.status(200).send(rows)
