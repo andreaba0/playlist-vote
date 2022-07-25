@@ -34,6 +34,20 @@ create table comment (
     primary key(uuid)
 );
 
+create table comment_like (
+    user_uuid text not null,
+    comment_uuid text not null,
+    primary key(user_uuid, comment_uuid)
+);
+
+alter table comment_like
+add foreign key (user_uuid) references _user(uuid)
+on update cascade on delete cascade;
+
+alter table comment_like
+add foreign key (comment_uuid) references comment(uuid)
+on update cascade on delete cascade;
+
 alter table comment
 add foreign key (song_id) references song(id)
 on update cascade on delete cascade;

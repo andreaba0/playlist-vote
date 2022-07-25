@@ -5,6 +5,7 @@ import '../../modules/client/renew'
 import { useState } from "react"
 import { v4 as uuidv4 } from "uuid"
 import { MdClose, MdAdd, MdThumbUp, MdThumbDown, MdThumbUpOffAlt, MdThumbDownOffAlt, MdExitToApp, MdReply } from 'react-icons/md'
+import {FaHeart, FaRegHeart} from 'react-icons/fa'
 import { useRouter } from 'next/router'
 
 export async function getServerSideProps(context) {
@@ -65,7 +66,15 @@ export async function getServerSideProps(context) {
                 select comment.message
                 from comment
                 where comment.uuid=c.reply_to
-            ) as replied_message
+            ) as replied_message, (
+                select count(user_uuid)
+                from comment_like
+                where comment_like.comment_uuid = c.uuid
+            ) as comment_like, (
+                select 1
+                from comment_like
+                where comment_like.user_uuid=$3 and comment_like.comment_uuid=c.uuid
+            ) as you_like
             from comment as c
             where c.song_id=(
                 select id
@@ -95,6 +104,8 @@ function CommentRow(props) {
     const reply_to_id = props.data.reply_to_id || null
     const reply_to_author = props.data.reply_to_author || null
     const replied_message = props.data.replied_message || null
+    const like_number = props.data.comment_like || 0
+    const you_like = props.data.you_like || 0
     const replyEvent = () => {
         router.push(`/comment/add?song=${props.song}&author=${props.author}&reply_to=${comment_uuid}`)
     }
@@ -103,35 +114,76 @@ function CommentRow(props) {
         if (reply_to_id === null) return (null)
         return (
             <div className="flex flex-row justify-center w-full pt-1">
-                <div className="w-7"></div>
-                <div className="flex flex-grow flex-col items-center border-blue-600 border-l-4 rounded bg-slate-50">
+                <div className="w-4"></div>
+                <div className="flex flex-grow flex-col items-center border-blue-600 border-l-4 bg-slate-50">
                     <div className="w-full box-border pl-4 text-xs text-gray-500 font-bold pt-1">
                         {reply_to_author}
                     </div>
-                    <div className="w-full box-border pl-6 text-xs text-gray-400 font-bold pb-1">
+                    <div className="w-full box-border pl-6 text-xs text-gray-400 font-bold pb-1 pt-1">
                         {replied_message}
                     </div>
                 </div>
-                <div className="w-7"></div>
+                <div className="w-4"></div>
             </div>
         )
     }
 
+    function renderLikeIcon() {
+        if(you_like===1) return (<div onClick={() =>likeApi(0)}>
+            <FaHeart size={16} />
+        </div>)
+
+        return (<div onClick={() =>likeApi(1)}>
+            <FaRegHeart size={16} />
+        </div>)
+    }
+
+    function likeApi(status) {
+        fetch('/api/update_comment_like', {
+            method: 'POST',
+            body: JSON.stringify({
+                comment_uuid: comment_uuid,
+                like: status
+            })
+        })
+        .then(res => {
+            if(res.status===200) props.onLike()
+            res.text()
+        })
+        .then(data=> {
+            
+        })
+        .catch(e=> {console.log(e.message)})
+    }
+
     return (
-        <div className="flex flex-row justify-center">
+        <div className="flex flex-row justify-center bg-gray-100 py-3">
             <div className="w-12"></div>
-            <div className="flex flex-col w-full items-center rounded-md bg-slate-100 overflow-x-hidden">
-                <div className="flex flex-row justify-center w-full">
-                    <div className="flex-grow pt-2 pl-4 text-sm font-bold text-gray-700">
-                        {author}
-                    </div>
-                    <div onClick={replyEvent} className="w-11 text-blue-600 hover:bg-gray-200 flex items-center justify-center">
-                        <MdReply size={21} />
-                    </div>
+            <div className="flex flex-col w-full items-center rounded-md overflow-x-hidden">
+                <div className="w-full box-border pl-4 text-sm font-bold text-gray-700">
+                    {author}
                 </div>
+                <div className="w-full h-2 flex"></div>
                 {renderRepliedTo()}
-                <div className="w-full box-border px-5 pt-2 text-sm font-medium text-gray-600 pb-2">
-                    {comment}
+                <div className="w-full h-2 flex"></div>
+                <div className="w-full flex flex-row justify-center">
+                    <div className="w-5"></div>
+                    <div className="w-full flex-grow box-border text-sm font-medium text-gray-600 pb-2">
+                        {comment}
+                    </div>
+                    <div className="w-5"></div>
+                </div>
+                <div className="w-full h-4 flex"></div>
+                <div className="w-full flex flex-row justify-start">
+                    <div className="w-5"></div>
+                    <div className="text-gray-500 border-solid border-r-2 border-gray-500 hover:bg-gray-200 cursor-pointer font-bold text-sm w-16 flex flex-row justify-center items-center space-x-2">
+                        <div>{like_number}</div>
+                        {renderLikeIcon()}
+                    </div>
+                    <div onClick={replyEvent} className="flex w-28 flex-row justify-center items-center text-blue-500 hover:bg-gray-200 cursor-pointer text-sm font-bold space-x-2">
+                        <div>Reply</div>
+                        <div><MdReply size={16} /></div>
+                    </div>
                 </div>
             </div>
             <div className="w-12"></div>
@@ -140,6 +192,7 @@ function CommentRow(props) {
 }
 
 export default function CommentsPage(props) {
+    console.log(props.data)
     var [comments, setComments] = useState(props.data)
     var [page, setPage] = useState('main')
     var [params, setParams] = useState(null)
@@ -157,6 +210,7 @@ export default function CommentsPage(props) {
         comments.map((obj) => {
             res.push(
                 <CommentRow
+                    onLike={updateComments}
                     key={uuidv4()}
                     data={obj}
                     song={props.song}
@@ -165,6 +219,23 @@ export default function CommentsPage(props) {
             )
         })
         return res
+    }
+
+    function updateComments() {
+        fetch('/api/get_comments', {
+            method: 'POST',
+            body: JSON.stringify({
+                song: props.song,
+                author: props.author
+            })
+        })
+        .then(res=>{
+            return res.json()
+        })
+        .then(data=> {
+            setComments(data)
+        })
+        .catch(e=>{console.log(e.message)})
     }
 
     function render() {
@@ -178,7 +249,7 @@ export default function CommentsPage(props) {
                         <MdClose size={30} />
                     </div>
                 </div>
-                <div className="w-full flex flex-col space-y-5">
+                <div className="w-full flex flex-col space-y-12">
                     {renderComments()}
                 </div>
                 <div className="w-full py-4 flex flex-col items-center">

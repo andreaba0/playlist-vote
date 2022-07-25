@@ -55,7 +55,15 @@ export default async function getComments(req, res) {
                     select comment.message
                     from comment
                     where comment.uuid=c.reply_to
-                ) as replied_message
+                ) as replied_message, (
+                    select count(user_uuid)
+                    from comment_like
+                    where comment_like.comment_uuid = c.uuid
+                ) as comment_like, (
+                    select 1
+                    from comment_like
+                    where comment_like.user_uuid=$3 and comment_like.comment_uuid=c.uuid
+                ) as you_like
                 from comment as c
                 where c.song_id=(
                     select id
