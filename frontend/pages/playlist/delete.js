@@ -95,7 +95,7 @@ export default function DeleteSong(props) {
         var word = 'delete'
         var res = []
         for (var c of word) res.push(
-            <div className="px-2 py-1 text-base font-bold text-gray-600 bg-slate-100">
+            <div key={uuidv4()} className="px-2 py-1 text-base font-bold text-gray-600 bg-slate-100">
                 {c}
             </div>
         )
