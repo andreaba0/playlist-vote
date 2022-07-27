@@ -1,4 +1,3 @@
-import { getClient } from "../../modules/redis"
 import { parseCookie, parseUserSession } from "../../modules/supply"
 import '../../modules/client/renew'
 import { useState } from "react"
@@ -30,9 +29,12 @@ export async function getServerSideProps(context) {
     }
     const session = parseUserSession(userAccessCookie)
 
-    const client = await getClient()
-    const redisUserSession = await client.get(`${session.user_uuid}.${session.session_uuid}`)
-    if (redisUserSession === null) {
+    const res = await fetch(`http://${process.env.DOMAIN}/api/auth/status`, {
+        method: 'POST',
+        body: userAccessCookie
+    })
+
+    if(res.status!==200) {
         context.res.setHeaders('set-cookie', 'session=;path=/;httpOnly')
         return {
             redirect: {

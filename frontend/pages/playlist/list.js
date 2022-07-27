@@ -5,6 +5,7 @@ import '../../modules/client/renew'
 import { useState } from "react"
 import { v4 as uuidv4 } from "uuid"
 import { MdClose, MdAdd, MdThumbUp, MdThumbDown, MdThumbUpOffAlt, MdThumbDownOffAlt, MdExitToApp, MdOutlineModeComment } from 'react-icons/md'
+import { FaCaretDown, FaCaretUp } from 'react-icons/fa'
 import { useRouter } from 'next/router'
 import { Page } from "@/Components/page"
 import { Menu } from "@/Components/menu"
@@ -13,6 +14,7 @@ import { HeadComponent } from "@/Components/head"
 export async function getServerSideProps(context) {
     const cookies = parseCookie(context.req.headers.cookie || '')
     const userAccessCookie = cookies['session'] || null
+    console.log(cookies)
     if (userAccessCookie === null) return {
         redirect: {
             permanent: false,
@@ -67,7 +69,8 @@ export async function getServerSideProps(context) {
 
     return {
         props: {
-            data: rows
+            data: rows,
+            display: cookies['filter_display'] || null
         }
     }
 }
@@ -149,44 +152,62 @@ export function SongRow(props) {
             })
     }
 
-    return (
-        <div className="w-full flex flex-col border-b-2 border-dotted border-gray-500">
-            <div className="w-full flex flex-row">
+    function render() {
+        if (props.display === 'full') return (
+            <div className="w-full flex flex-col border-b-2 border-dotted border-gray-500">
+                <div className="w-full flex flex-row">
+                    <div className="w-3/4 flex-grow flex flex-col items-start pt-2 pl-3">
+                        <div className="text-sm text-gray-800 font-bold">
+                            {props.name}{' '}-{' '}<span className="text-gray-500">{props.author}</span>
+                        </div>
+                        <div className="text-sm text-gray-600 font-thin">
+                            {(props.is_your === 1) ? 'Tu' : props.created_by}
+                        </div>
+                    </div>
+                    {(props.is_your) ? (
+                        <div
+                            className="flex w-14 items-center justify-center cursor-pointer hover:bg-gray-100"
+                            onClick={() => {
+                                router.push(`/playlist/delete?song=${props.name}&author=${props.author}`)
+                            }}
+                        >
+                            <MdClose size={21} />
+                        </div>
+                    ) : (null)}
+                </div>
+                <div className="w-full flex flex-row pb-2 pl-3">
+                    {renderVote()}
+                    {renderUpVote()}
+                    {renderDownVote()}
+                    <div onClick={() => {
+                        router.push(`/comment/list?song=${props.name}&author=${props.author}`)
+                    }} className="w-14 text-gray-700 flex items-center justify-center hover:bg-gray-100">
+                        <MdOutlineModeComment size={21} />
+                    </div>
+                </div>
+            </div>
+        )
+
+        return (
+            <div className="w-full flex flex-row justify-center border-b-2 border-dotted border-gray-500 py-3">
                 <div className="w-3/4 flex-grow flex flex-col items-start pt-2 pl-3">
                     <div className="text-sm text-gray-800 font-bold">
                         {props.name}{' '}-{' '}<span className="text-gray-500">{props.author}</span>
                     </div>
-                    <div className="text-sm text-gray-600 font-thin">
-                        {(props.is_your === 1) ? 'Tu' : props.created_by}
-                    </div>
                 </div>
-                {(props.is_your) ? (
-                    <div
-                        className="flex w-14 items-center justify-center cursor-pointer hover:bg-gray-100"
-                        onClick={() => {
-                            router.push(`/playlist/delete?song=${props.name}&author=${props.author}`)
-                        }}
-                    >
-                        <MdClose size={21} />
-                    </div>
-                ) : (null)}
-            </div>
-            <div className="w-full flex flex-row pb-2 pl-3">
-                {renderVote()}
                 {renderUpVote()}
                 {renderDownVote()}
-                <div onClick={() => {
-                    router.push(`/comment/list?song=${props.name}&author=${props.author}`)
-                }} className="w-14 text-gray-700 flex items-center justify-center hover:bg-gray-100">
-                    <MdOutlineModeComment size={21} />
-                </div>
             </div>
-        </div>
-    )
+        )
+    }
+
+    return render()
 }
 
 export default function Home(props) {
     var [data, setData] = useState(props.data)
+    var [display, setDisplay] = useState(props.display || 'full')
+    var [filterDisplayOpened, setFilterDisplayOpened] = useState(0)
     const router = useRouter()
 
     function renderSongList() {
@@ -204,6 +225,7 @@ export default function Home(props) {
                     total_voters={obj.total_voters}
                     key={uuidv4()}
                     reloadPage={reloadPage}
+                    display={display}
                 />
             )
         })
@@ -236,6 +258,62 @@ export default function Home(props) {
         )
     }
 
+    function parseVistaType() {
+        if (display === 'full') return "completa"
+        return "semplificata"
+    }
+
+    function parseArrow() {
+        if (filterDisplayOpened === 1) return <FaCaretUp size={15} />
+        return <FaCaretDown size={15} />
+    }
+
+    function displayFilterSelection() {
+        if (filterDisplayOpened === 1) return (
+            <div className="w-60 absolute z-10 top-10 right-0 flex flex-col items-center rounded-md border-solid border-gray-200 border-[1px] bg-white shadow-md">
+                {(display !== 'full') ? (
+                    <div onClick={() => {
+                        document.cookie='filter_display=full; path=/; samesite=lax'
+                        setDisplay('full')
+                    }} className="w-full py-2 text-center">
+                        completa
+                    </div>
+                ) : (null)}
+                {(display !== 'simplified') ? (
+                    <div onClick={() => {
+                        document.cookie='filter_display=simplified; path=/; samesite=lax'
+                        setDisplay('simplified')
+                    }} className="w-full py-2 text-center">
+                        semplificata
+                    </div>
+                ) : (null)}
+            </div>
+        )
+
+        return (null)
+    }
+
+    function pageBody() {
+        return (
+            <div className="flex flex-col w-full items-center">
+                <div className="w-full flex flex-row justify-center py-6">
+                    <div onClick={() => { setFilterDisplayOpened((filterDisplayOpened + 1) % 2) }} className="flex select-none space-x-4 flex-row w-60 h-9 rounded border-gray-200 border-solid border-[1px] relative items-center justify-center font-medium text-base text-gray-700">
+                        <div>
+                            Mostra vista: {parseVistaType()}
+                        </div>
+                        <div>
+                            {parseArrow()}
+                        </div>
+                        {displayFilterSelection()}
+                    </div>
+                </div>
+                <div className="w-full flex flex-col items-center">
+                    {renderSongList()}
+                </div>
+            </div>
+        )
+    }
+
     return (
         <Page absoluteMenu={
             renderAddButton()
@@ -244,7 +322,7 @@ export default function Home(props) {
         } head={
             <HeadComponent title="Playlist - brani" />
         }>
-            {renderSongList()}
+            {pageBody()}
         </Page>
     )
 }
