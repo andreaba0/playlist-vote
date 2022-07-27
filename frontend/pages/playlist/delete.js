@@ -29,7 +29,7 @@ export async function getServerSideProps(context) {
     }
     const session = parseUserSession(userAccessCookie)
 
-    const res = await fetch(`http://${process.env.DOMAIN}/api/auth/status`, {
+    const res = await fetch(`${process.env.DOMAIN}/api/auth/status`, {
         method: 'POST',
         body: userAccessCookie
     })

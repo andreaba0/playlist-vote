@@ -1,5 +1,3 @@
-import { getClient } from "../../modules/redis"
-import { getClient as getPgClient } from "../../modules/pg"
 import { parseCookie, parseUserSession } from "../../modules/supply"
 import '../../modules/client/renew'
 import { useState } from "react"
@@ -21,11 +19,19 @@ export async function getServerSideProps(context) {
             destination: '/signin?redirect=playlist/list'
         }
     }
-    const session = parseUserSession(userAccessCookie)
-
-    const client = await getClient()
-    const redisUserSession = await client.get(`${session.user_uuid}.${session.session_uuid}`)
-    if (redisUserSession === null) {
+    const res = await fetch(`${process.env.DOMAIN}/api/backend/playlist/list`, {
+        method: 'POST',
+        body: userAccessCookie
+    })
+    if(res.status>=500) {
+        return {
+            props: {
+                status: 500,
+                data: null
+            }
+        }
+    }
+    if(res.status>400) {
         context.res.setHeaders('set-cookie', 'session=;path=/;httpOnly')
         return {
             redirect: {
@@ -34,38 +40,7 @@ export async function getServerSideProps(context) {
             }
         }
     }
-
-    const pgClient = await getPgClient()
-
-    var { rows } = await pgClient.query(
-        `select s.name, s.author, (
-            select _user.username
-            from _user
-            where _user.uuid=s.user_uuid
-        )as created_by, (
-            select count(vote.vote)
-            from vote
-            where vote.vote='up' and vote.song_id=s.id
-        ) as up, (
-            select count(vote.vote)
-            from vote
-            where vote.vote='down' and vote.song_id=s.id
-        ) as down, (
-            select vote.vote
-            from vote
-            where vote.song_id=s.id and vote.user_uuid=$1
-        ) as your_vote, (
-            select 1
-            from song as so
-            where so.id=s.id and user_uuid=$1
-        ) as is_your, (
-            select count(username)
-            from _user
-        ) as total_voters
-        from song as s
-        order by s.name asc`,
-        [session.user_uuid]
-    )
+    const rows = await res.json()
 
     return {
         props: {
@@ -237,7 +212,9 @@ export default function Home(props) {
     }
 
     function reloadPage() {
-        fetch('/api/song_list')
+        fetch('/api/client/playlist/list', {
+            method: 'POST'
+        })
             .then(res => {
                 return res.json()
             })
@@ -294,6 +271,15 @@ export default function Home(props) {
     }
 
     function pageBody() {
+        if(props.status===500) {
+            return (
+                <div className="w-full flex items-center text-sm font-medium text-gray-700 h-60 justify-center">
+                    <div className="max-w-xs text-center">
+                        Si &egrave; verificato un errore
+                    </div>
+                </div>
+            )
+        }
         return (
             <div className="flex flex-col w-full items-center">
                 <div className="w-full flex flex-row justify-center py-6">

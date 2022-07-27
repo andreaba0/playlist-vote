@@ -14,6 +14,7 @@ if [ $1 == "docker-start" ]; then
     -e PG_HOST="${ip}" \
     -e PG_PORT='5432' \
     -e PG_DATABASE='vote' \
+    -e DOMAIN='https://sm.playlist.andreabarchietto.it'
     -p $2:3000:3000 --name next_server next_server_image:latest
 elif [ $1 == "local" ]; then
     echo "Running in local"
