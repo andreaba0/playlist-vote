@@ -12,7 +12,9 @@ export function Menu(props) {
     }
 
     function exit() {
-        fetch('/api/signout')
+        fetch('/api/client/signout', {
+            method: 'POST'
+        })
             .then(res => {
                 if (res.status === 200) router.push('/')
             })

@@ -2,10 +2,10 @@
 
 if [ $1 == "docker-start" ]; then
     ip=$2
-    echo "build e avvio server next..."
-    docker stop next_server
-    docker rm next_server
-    docker build --tag next_server_image .
+    echo "build e avvio server typescript..."
+    docker stop typescript_server
+    docker rm typescript_server
+    docker build --tag typescript_server_image .
     docker run -d \
     -e REDIS_HOST="${ip}" \
     -e REDIS_PORT='20000' \
@@ -14,15 +14,15 @@ if [ $1 == "docker-start" ]; then
     -e PG_HOST="${ip}" \
     -e PG_PORT='5432' \
     -e PG_DATABASE='vote' \
-    -e DOMAIN='https://sm.playlist.andreabarchietto.it'
-    -p $2:3000:3000 --name next_server next_server_image:latest
+    -p $2:3001:3001 --name typescript_server typescript_server_image:latest
 elif [ $1 == "local" ]; then
     echo "Running in local"
-    npm run dev
+    npx tsc
+    node dist/app.js
 elif [ $1 == "stop-server" ]; then
     echo "Stopping the server..."
-    docker stop next_server
-    docker rm next_server
+    docker stop typescript_server
+    docker rm typescript_server
 else
     echo "Comando sconosciuto";
 fi

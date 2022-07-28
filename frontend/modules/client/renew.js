@@ -1,5 +1,7 @@
 function renew() {
-    fetch('/api/renew')
+    fetch('/api/client/session/renew', {
+        method: 'POST'
+    })
         .then(res => {
             console.log(res.status)
             return res.text()

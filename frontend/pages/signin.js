@@ -39,7 +39,7 @@ export default function SigninPage(props) {
     function submitForm(e) {
         e.preventDefault()
         console.log(username, password)
-        fetch('/api/signin', {
+        fetch('/api/client/signin', {
             method: 'POST',
             body: JSON.stringify({
                 username: username,

@@ -4,6 +4,7 @@ import { getClient as getRedisClient } from './redis'
 import { getClient as getPgClient, query as pgQuery } from './postgresql'
 import cookieParser from 'cookie-parser'
 import { v4 as uuidv4 } from 'uuid'
+import crypto from 'crypto'
 dotenv.config()
 
 const app = express();
@@ -257,7 +258,6 @@ app.post('/api/client/comment/list', authMiddlewareClient, async (req: any, res:
 
 app.post('/api/backend/comment/list', authMiddlewareBackend, async (req: any, res: Response): Promise<void> => {
     const body = req.body || null
-    console.log(req.body)
     if (body === null) {
         res.status(400).send('BODY_REQUIRED')
         return
@@ -550,6 +550,77 @@ app.post('/api/client/song/vote', authMiddlewareClient, async (req: any, res: Re
             res.status(500).send('STORAGE_ERROR')
             return
         }
+        res.status(200).send()
+    } catch (e) {
+        console.log(e.message)
+        res.status(500).send('SERVER_ERROR')
+    }
+})
+
+app.post('/api/client/session/renew', authMiddlewareClient, async (req: any, res: Response): Promise<void> => {
+    const session = req._user
+    try {
+        const client = getRedisClient()
+        const newCode = uuidv4()
+        await client.set(`${session.user_uuid}.${session.session_uuid}`, newCode, {
+            EX: 60 * 10
+        })
+        res.setHeader('set-cookie', `session=${session.user_uuid}.${session.session_uuid}.${newCode};path=/;same-site=strict;httpOnly;max-age=${60 * 10}`)
+        res.status(200).send()
+    } catch (e) {
+        console.log(e.message)
+        res.status(500).send('SERVER_ERROR')
+    }
+})
+
+function hashPassword(password, salt) {
+    return crypto.createHash('sha256').update(`${password}:${salt}`).digest('hex')
+}
+
+app.post('/api/client/signin', async (req: Request, res: Response): Promise<void> => {
+    const redisClient = await getRedisClient()
+    const body = req.body || null
+    if (body === null) {
+        res.status(400).send('BODY_REQUIRED')
+        return
+    }
+
+
+    try {
+        const userData = JSON.parse(body)
+        const [err, rows] = await pgQuery(
+            `select uuid, password, salt
+            from _user
+            where username=$1`,
+            [userData.username]
+        )
+        if (err) {
+            res.status(500).send('STORAGE_ERROR')
+            return
+        }
+        if (rows.lengh === 0) res.status(400).send('USER_NOT_FOUND')
+        else if (rows[0].password !== hashPassword(userData.password, rows[0].salt)) res.status(400).send('WRONG_PASSWORD')
+        else {
+            const user_uuid = rows[0].uuid
+            const session_uuid = uuidv4()
+            const session_data = uuidv4()
+            await redisClient.set(`${user_uuid}.${session_uuid}`, session_data, {
+                EX: 60 * 10
+            })
+            res.setHeader('set-cookie', `session=${user_uuid}.${session_uuid}.${session_data};path=/;same-site=strict;httpOnly;max-age=${60 * 10}`)
+            res.status(200).send()
+        }
+    } catch (e) {
+        console.log(e.message)
+        res.status(400).send('BODY_MALFORMED')
+    }
+})
+
+app.post('/api/client/signout', authMiddlewareClient, async (req: any, res: Response): Promise<void> => {
+    const redisClient = await getRedisClient()
+    try {
+        const redisUserSession = await redisClient.getDel(`${req._user.user_uuid}.${req._user.session_uuid}`)
+        res.setHeader('set-cookie', `session=;path=/;same-site=strict;httpOnly`)
         res.status(200).send()
     } catch (e) {
         console.log(e.message)
