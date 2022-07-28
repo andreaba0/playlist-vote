@@ -31,11 +31,11 @@ export async function getServerSideProps(context) {
 
     const res = await fetch(`${process.env.DOMAIN}/api/auth/status`, {
         method: 'POST',
-        body: userAccessCookie
+        body: JSON.stringify({session: userAccessCookie})
     })
 
     if(res.status!==200) {
-        context.res.setHeaders('set-cookie', 'session=;path=/;httpOnly')
+        context.res.setHeader('set-cookie', 'session=;path=/;httpOnly')
         return {
             redirect: {
                 permanent: false,

@@ -1,5 +1,3 @@
-import { getClient } from "../../modules/redis"
-import { getClient as getPgClient } from "../../modules/pg"
 import { parseCookie, parseUserSession } from "../../modules/supply"
 import '../../modules/client/renew'
 import { useState } from "react"
@@ -17,7 +15,7 @@ export async function getServerSideProps(context) {
     if (songName === null || songAuthor === null) return {
         redirect: {
             permanent: false,
-            destination: '/playlist'
+            destination: '/playlist/list'
         }
     }
     const cookies = parseCookie(context.req.headers.cookie || '')
@@ -30,10 +28,25 @@ export async function getServerSideProps(context) {
     }
     const session = parseUserSession(userAccessCookie)
 
-    const client = await getClient()
-    const redisUserSession = await client.get(`${session.user_uuid}.${session.session_uuid}`)
-    if (redisUserSession === null) {
-        context.res.setHeaders('set-cookie', 'session=;path=/;httpOnly')
+    const res = await fetch(`${process.env.DOMAIN}/api/backend/comment/list`, {
+        method: 'POST',
+        body: JSON.stringify({
+            session: userAccessCookie,
+            song: songName,
+            author: songAuthor
+        })
+    })
+    console.log(res.status)
+    if (res.status >= 500) return {
+        props: {
+            status: 500,
+            data: null,
+            song: songName,
+            author: songAuthor
+        }
+    }
+    if (res.status >= 400) {
+        context.res.setHeader('set-cookie', 'session=;path=/;httpOnly')
         return {
             redirect: {
                 permanent: false,
@@ -42,56 +55,11 @@ export async function getServerSideProps(context) {
         }
     }
 
-    const pgClient = await getPgClient()
-
-    var { rows } = await pgClient.query(
-        `select
-            (
-                select 1
-                from comment as com
-                where com.user_uuid=$3 and com.uuid=c.uuid
-            ) as is_you,
-            c.uuid as comment_uuid,
-            extract(epoch from (now() - c.created_at)) as created_at,
-            c.user_uuid as uuid_author,
-            (
-                select u.username
-                from _user as u
-                where u.uuid=c.user_uuid
-            ) as author,
-            c.message as comment,
-            c.reply_to as reply_to_id, 
-            (
-                select _user.username
-                from _user inner join comment on _user.uuid=comment.user_uuid
-                where c.reply_to=comment.uuid and _user.uuid=comment.user_uuid
-            ) as reply_to_author,
-            (
-                select comment.message
-                from comment
-                where comment.uuid=c.reply_to
-            ) as replied_message, (
-                select count(user_uuid)
-                from comment_like
-                where comment_like.comment_uuid = c.uuid
-            ) as comment_like, (
-                select 1
-                from comment_like
-                where comment_like.user_uuid=$3 and comment_like.comment_uuid=c.uuid
-            ) as you_like
-            from comment as c
-            where c.song_id=(
-                select id
-                from song
-                where song.name=$1 and song.author=$2
-            )
-            order by created_at desc`,
-        [songName, songAuthor, session.user_uuid]
-    )
+    const data = await res.json()
 
     return {
         props: {
-            data: rows,
+            data: data,
             song: songName,
             author: songAuthor
         }
@@ -163,19 +131,19 @@ function CommentRow(props) {
 
     function parseTimeCreated() {
         const t = parseInt(created_at)
-        if(t===0) return "Adesso"
-        if(t<60&&t===1) return `${t} secondo fa`
-        if(t<60) return `${t} secondi fa`
-        const minutes = parseInt(t/60)
-        if(minutes<60&&minutes===1) return `${minutes} minuto fa`
-        if(minutes<60) return `${minutes} minuti fa`
+        if (t === 0) return "Adesso"
+        if (t < 60 && t === 1) return `${t} secondo fa`
+        if (t < 60) return `${t} secondi fa`
+        const minutes = parseInt(t / 60)
+        if (minutes < 60 && minutes === 1) return `${minutes} minuto fa`
+        if (minutes < 60) return `${minutes} minuti fa`
 
-        const hours = parseInt(minutes/60)
-        if(hours<24&&hours===1) return `${hours} ora fa`
-        if(hours<24) return `${hours} ore fa`
+        const hours = parseInt(minutes / 60)
+        if (hours < 24 && hours === 1) return `${hours} ora fa`
+        if (hours < 24) return `${hours} ore fa`
 
-        const days = parseInt(hours/24)
-        if(days===1) return `${days} giorno fa`
+        const days = parseInt(hours / 24)
+        if (days === 1) return `${days} giorno fa`
         return `${days} giorni fa`
     }
 
@@ -185,7 +153,7 @@ function CommentRow(props) {
             <div className="flex flex-col w-full items-center rounded-md overflow-x-hidden">
                 <div className="w-full flex flex-row justify-start">
                     <div className="pl-4 text-sm font-bold text-gray-700">
-                        {(is_you===1) ? 'Tu' : author}
+                        {(is_you === 1) ? 'Tu' : author}
                     </div>
                     <div className="text-sm font-medium text-gray-400 pl-5">
                         {parseTimeCreated()}
@@ -250,7 +218,7 @@ export default function CommentsPage(props) {
     }
 
     function updateComments() {
-        fetch('/api/get_comments', {
+        fetch('/api/client/comment/list', {
             method: 'POST',
             body: JSON.stringify({
                 song: props.song,

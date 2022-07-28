@@ -1,8 +1,9 @@
-import express, { Request, Response, NextFunction } from "express";
+import express, { Request, Response, NextFunction, json } from "express";
 import dotenv from 'dotenv';
 import { getClient as getRedisClient } from './redis'
 import { getClient as getPgClient, query as pgQuery } from './postgresql'
 import cookieParser from 'cookie-parser'
+import { v4 as uuidv4 } from 'uuid'
 dotenv.config()
 
 const app = express();
@@ -27,177 +28,433 @@ async function userSignedIn(user_uuid, session_uuid, session_data): Promise<numb
     }
 }
 
-async function authMiddleware(req: Request, res: Response, next: NextFunction) {
+async function authMiddlewareBackend(req: any, res: Response, next: NextFunction) {
+    const client = getRedisClient()
+    const body = req.body || null
+    if (body === null) {
+        res.status(400).send('BODY_REQUIRED')
+        return
+    }
+    const bodyData = JSON.parse(body)
+    const sessionParts = bodyData?.session.split('.')
+    const session = {
+        user_uuid: sessionParts[0] || null,
+        session_uuid: sessionParts[1] || null,
+        session_data: sessionParts[2] || null
+    }
 
+    const authStatus = await userSignedIn(session.user_uuid, session.session_uuid, session.session_data)
+
+    if (authStatus === 400) {
+        res.status(400).send('SIGNED_OUT')
+        return
+    }
+    if (authStatus === 401) {
+        res.status(400).send('BAD_CREDENTIALS')
+        return
+    }
+    if (authStatus === 500) {
+        res.status(500).send('AUTH_SERVICE')
+        return
+    }
+
+    req._user = {}
+    req._user.user_uuid = session.user_uuid
+    req._user.session_uuid = session.session_uuid
+    req._user.session_data = session.session_data
+    next()
 }
 
-app.get('/api-service', (req: Request, res: Response): void => {
+async function authMiddlewareClient(req: any, res: Response, next: NextFunction) {
+    const client = getRedisClient()
+    const body = req.cookies['session'] || null
+    if (body === null) {
+        res.status(400).send('BODY_REQUIRED')
+        return
+    }
+    const sessionParts = body.split('.')
+    const session = {
+        user_uuid: sessionParts[0] || null,
+        session_uuid: sessionParts[1] || null,
+        session_data: sessionParts[2] || null
+    }
+
+    const authStatus = await userSignedIn(session.user_uuid, session.session_uuid, session.session_data)
+
+    if (authStatus === 400) {
+        res.status(400).send('SIGNED_OUT')
+        return
+    }
+    if (authStatus === 401) {
+        res.status(400).send('BAD_CREDENTIALS')
+        return
+    }
+    if (authStatus === 500) {
+        res.status(500).send('AUTH_SERVICE')
+        return
+    }
+
+    req._user = {}
+    req._user.user_uuid = session.user_uuid
+    req._user.session_uuid = session.session_uuid
+    req._user.session_data = session.session_data
+    next()
+}
+
+app.get('/api-service', (req, res: Response): void => {
     res.send('Hello World');
 })
 
-app.post('/api/auth/status', async (req: Request, res: Response): Promise<void> => {
-    const client = getRedisClient()
+app.post('/api/auth/status', authMiddlewareBackend, async (req: any, res: Response): Promise<void> => {
+    res.status(200).send('OK')
+})
+
+app.post('/api/backend/playlist/list', authMiddlewareBackend, async (req: any, res: Response): Promise<void> => {
+
+    var [err, rows] = await pgQuery(
+        `select s.name, s.author, (
+            select _user.username
+            from _user
+            where _user.uuid=s.user_uuid
+        )as created_by, (
+            select count(vote.vote)
+            from vote
+            where vote.vote='up' and vote.song_id=s.id
+        ) as up, (
+            select count(vote.vote)
+            from vote
+            where vote.vote='down' and vote.song_id=s.id
+        ) as down, (
+            select vote.vote
+            from vote
+            where vote.song_id=s.id and vote.user_uuid=$1
+        ) as your_vote, (
+            select 1
+            from song as so
+            where so.id=s.id and user_uuid=$1
+        ) as is_your, (
+            select count(username)
+            from _user
+        ) as total_voters
+        from song as s
+        order by s.name asc`,
+        [req._user.user_uuid]
+    )
+
+    if (err) {
+        res.status(500).send('STORAGE_SERVICE')
+        return
+    }
+
+    res.status(200).send(JSON.stringify(rows))
+})
+
+app.post('/api/client/playlist/list', authMiddlewareClient, async (req: any, res: Response): Promise<void> => {
+
+    var [err, rows] = await pgQuery(
+        `select s.name, s.author, (
+            select _user.username
+            from _user
+            where _user.uuid=s.user_uuid
+        )as created_by, (
+            select count(vote.vote)
+            from vote
+            where vote.vote='up' and vote.song_id=s.id
+        ) as up, (
+            select count(vote.vote)
+            from vote
+            where vote.vote='down' and vote.song_id=s.id
+        ) as down, (
+            select vote.vote
+            from vote
+            where vote.song_id=s.id and vote.user_uuid=$1
+        ) as your_vote, (
+            select 1
+            from song as so
+            where so.id=s.id and user_uuid=$1
+        ) as is_your, (
+            select count(username)
+            from _user
+        ) as total_voters
+        from song as s
+        order by s.name asc`,
+        [req._user.user_uuid]
+    )
+
+    if (err) {
+        res.status(500).send('STORAGE_SERVICE')
+        return
+    }
+
+    res.status(200).send(JSON.stringify(rows))
+})
+
+app.post('/api/client/comment/list', authMiddlewareClient, async (req: any, res: Response): Promise<void> => {
+    const body = req.body || null
+    if (body === null) {
+        res.status(400).send('BODY_REQUIRED')
+        return
+    }
+    const bodyData = JSON.parse(body)
+    const songName = bodyData.song
+    const songAuthor = bodyData.author
+    if (songName === null || songAuthor === null) {
+        res.status(400).send('INCOMPLETE_DATA')
+        return
+    }
+
+    var [err, rows] = await pgQuery(
+        `select
+            (
+                select 1
+                from comment as com
+                where com.user_uuid=$3 and com.uuid=c.uuid
+            ) as is_you,
+            c.uuid as comment_uuid,
+            extract(epoch from (now() - c.created_at)) as created_at,
+            c.user_uuid as uuid_author,
+            (
+                select u.username
+                from _user as u
+                where u.uuid=c.user_uuid
+            ) as author,
+            c.message as comment,
+            c.reply_to as reply_to_id, 
+            (
+                select _user.username
+                from _user inner join comment on _user.uuid=comment.user_uuid
+                where c.reply_to=comment.uuid and _user.uuid=comment.user_uuid
+            ) as reply_to_author,
+            (
+                select comment.message
+                from comment
+                where comment.uuid=c.reply_to
+            ) as replied_message, (
+                select count(user_uuid)
+                from comment_like
+                where comment_like.comment_uuid = c.uuid
+            ) as comment_like, (
+                select 1
+                from comment_like
+                where comment_like.user_uuid=$3 and comment_like.comment_uuid=c.uuid
+            ) as you_like
+            from comment as c
+            where c.song_id=(
+                select id
+                from song
+                where song.name=$1 and song.author=$2
+            )
+            order by created_at desc`,
+        [songName, songAuthor, req._user.user_uuid]
+    )
+
+    if (err) {
+        res.status(500).send('STORAGE_ERROR')
+    } else {
+        res.status(200).send(JSON.stringify(rows))
+    }
+})
+
+app.post('/api/backend/comment/list', authMiddlewareBackend, async (req: any, res: Response): Promise<void> => {
     const body = req.body || null
     console.log(req.body)
     if (body === null) {
         res.status(400).send('BODY_REQUIRED')
         return
     }
-    const sessionParts = body.split('.')
-    const session = {
-        user_uuid: sessionParts[0] || null,
-        session_uuid: sessionParts[1] || null,
-        session_data: sessionParts[2] || null
-    }
-
-    const authStatus = await userSignedIn(session.user_uuid, session.session_uuid, session.session_data)
-
-    if (authStatus === 400) {
-        res.status(400).send('SIGNED_OUT')
-        return
-    }
-    if (authStatus === 401) {
-        res.status(400).send('BAD_CREDENTIALS')
-        return
-    }
-    if (authStatus === 500) {
-        res.status(500).send('AUTH_SERVICE')
+    const bodyData = JSON.parse(body)
+    const songName = bodyData.song
+    const songAuthor = bodyData.author
+    if (songName === null || songAuthor === null) {
+        res.status(400).send('INCOMPLETE_DATA')
         return
     }
 
-    res.status(200).send('OK')
+    var [err, rows] = await pgQuery(
+        `select
+            (
+                select 1
+                from comment as com
+                where com.user_uuid=$3 and com.uuid=c.uuid
+            ) as is_you,
+            c.uuid as comment_uuid,
+            extract(epoch from (now() - c.created_at)) as created_at,
+            c.user_uuid as uuid_author,
+            (
+                select u.username
+                from _user as u
+                where u.uuid=c.user_uuid
+            ) as author,
+            c.message as comment,
+            c.reply_to as reply_to_id, 
+            (
+                select _user.username
+                from _user inner join comment on _user.uuid=comment.user_uuid
+                where c.reply_to=comment.uuid and _user.uuid=comment.user_uuid
+            ) as reply_to_author,
+            (
+                select comment.message
+                from comment
+                where comment.uuid=c.reply_to
+            ) as replied_message, (
+                select count(user_uuid)
+                from comment_like
+                where comment_like.comment_uuid = c.uuid
+            ) as comment_like, (
+                select 1
+                from comment_like
+                where comment_like.user_uuid=$3 and comment_like.comment_uuid=c.uuid
+            ) as you_like
+            from comment as c
+            where c.song_id=(
+                select id
+                from song
+                where song.name=$1 and song.author=$2
+            )
+            order by created_at desc`,
+        [songName, songAuthor, req._user.user_uuid]
+    )
+
+    if (err) {
+        res.status(500).send('STORAGE_ERROR')
+    } else {
+        res.status(200).send(JSON.stringify(rows))
+    }
 })
 
-app.post('/api/backend/playlist/list', async (req: Request, res: Response): Promise<void> => {
+app.post('/api/client/comment/add', authMiddlewareClient, async (req: any, res: Response): Promise<void> => {
     const body = req.body || null
     if (body === null) {
         res.status(400).send('BODY_REQUIRED')
         return
     }
-    const sessionParts = body.split('.')
-    const session = {
-        user_uuid: sessionParts[0] || null,
-        session_uuid: sessionParts[1] || null,
-        session_data: sessionParts[2] || null
-    }
 
-    const authStatus = await userSignedIn(session.user_uuid, session.session_uuid, session.session_data)
+    try {
+        const commentData = JSON.parse(body)
 
-    if (authStatus === 400) {
-        res.status(400).send('SIGNED_OUT')
-        return
-    }
-    if (authStatus === 401) {
-        res.status(400).send('BAD_CREDENTIALS')
-        return
-    }
-    if (authStatus === 500) {
-        res.status(500).send('AUTH_SERVICE')
-        return
-    }
+        var [err, rows] = (commentData.reply_to === null) ? await pgQuery(
+            `insert into comment (
+                uuid,
+                song_id,
+                user_uuid,
+                message
+            ) values (
+                $1,
+                (
+                    select id
+                    from song
+                    where name=$2 and author=$3
+                ),
+                $4,
+                $5
+            ) returning *`,
+            [uuidv4(), commentData.song, commentData.author, req._user.user_uuid, commentData.message]
+        ) : await pgQuery(
+            `insert into comment (
+                uuid,
+                song_id,
+                user_uuid,
+                message,
+                reply_to
+            ) values (
+                $1,
+                (
+                    select id
+                    from song
+                    where name=$2 and author=$3
+                ),
+                $4,
+                $5,
+                $6
+            ) returning *`,
+            [uuidv4(), commentData.song, commentData.author, req._user.user_uuid, commentData.message, commentData.reply_to]
+        )
+        if (err) {
+            res.status(500).send('STORAGE_ERROR')
+            return
+        }
 
-    var [err, rows] = await pgQuery(
-        `select s.name, s.author, (
-            select _user.username
-            from _user
-            where _user.uuid=s.user_uuid
-        )as created_by, (
-            select count(vote.vote)
-            from vote
-            where vote.vote='up' and vote.song_id=s.id
-        ) as up, (
-            select count(vote.vote)
-            from vote
-            where vote.vote='down' and vote.song_id=s.id
-        ) as down, (
-            select vote.vote
-            from vote
-            where vote.song_id=s.id and vote.user_uuid=$1
-        ) as your_vote, (
-            select 1
-            from song as so
-            where so.id=s.id and user_uuid=$1
-        ) as is_your, (
-            select count(username)
-            from _user
-        ) as total_voters
-        from song as s
-        order by s.name asc`,
-        [session.user_uuid]
-    )
-
-    if (err) {
-        res.status(500).send('STORAGE_SERVICE')
-        return
+        if (rows.length > 0) {
+            res.status(200).send()
+        } else {
+            res.status(400).send('UNABLE_TO_ADD_COMMENT')
+        }
+    } catch (e) {
+        console.log(e.message)
+        res.status(500).send('SERVER_ERROR')
     }
-
-    res.status(200).send(JSON.stringify(rows))
 })
 
-app.post('/api/client/playlist/list', async (req: Request, res: Response): Promise<void> => {
-    const body = req.cookies['session'] || null
+app.post('/api/client/comment/like', authMiddlewareClient, async (req: any, res: Response): Promise<void> => {
+    try {
+        const body = req.body || null
+        if (body === null) {
+            res.status(400).send('BODY_REQUIRED')
+            return
+        }
+        const bodyData = JSON.parse(body)
+
+        var [err, rows] = (bodyData.like === 1) ? await pgQuery(
+            `insert into comment_like (
+                comment_uuid,
+                user_uuid
+            ) values (
+                $2,
+                $1
+            ) returning *`,
+            [req._user.user_uuid, bodyData.comment_uuid]
+        ) : await pgQuery(
+            `delete from comment_like
+            where comment_uuid=$2 and user_uuid=$1
+            returning *`,
+            [req._user.user_uuid, bodyData.comment_uuid]
+        )
+        if (err) {
+            res.status(500).send('STORAGE_ERROR')
+            return
+        }
+        if (rows.length > 0) {
+            res.status(200).send()
+        } else {
+            res.status(400).send('UNABLE_TO_PROCEED')
+        }
+    } catch (e) {
+        console.log(e.message)
+        res.status(500).send('SERVER_ERROR')
+    }
+})
+
+app.post('/api/backend/comment', async (req: Request, res: Response): Promise<void> => {
+    const body = req.body || null
     if (body === null) {
-        res.status(400).send('CREDENTIALS_REQUIRED')
+        res.status(400).send('BODY_REQUIRED')
         return
     }
-    const sessionParts = body.split('.')
-    const session = {
-        user_uuid: sessionParts[0] || null,
-        session_uuid: sessionParts[1] || null,
-        session_data: sessionParts[2] || null
-    }
-
-    const authStatus = await userSignedIn(session.user_uuid, session.session_uuid, session.session_data)
-
-    if (authStatus === 400) {
-        res.status(400).send('SIGNED_OUT')
+    const bodyData = JSON.parse(body)
+    const replyTo = bodyData.reply_to
+    if (replyTo === null) {
+        res.status(400).send('REPLY_TO_REQUIRED')
         return
     }
-    if (authStatus === 401) {
-        res.status(400).send('BAD_CREDENTIALS')
-        return
-    }
-    if (authStatus === 500) {
-        res.status(500).send('AUTH_SERVICE')
-        return
-    }
-
     var [err, rows] = await pgQuery(
-        `select s.name, s.author, (
-            select _user.username
-            from _user
-            where _user.uuid=s.user_uuid
-        )as created_by, (
-            select count(vote.vote)
-            from vote
-            where vote.vote='up' and vote.song_id=s.id
-        ) as up, (
-            select count(vote.vote)
-            from vote
-            where vote.vote='down' and vote.song_id=s.id
-        ) as down, (
-            select vote.vote
-            from vote
-            where vote.song_id=s.id and vote.user_uuid=$1
-        ) as your_vote, (
-            select 1
-            from song as so
-            where so.id=s.id and user_uuid=$1
-        ) as is_your, (
-            select count(username)
-            from _user
-        ) as total_voters
-        from song as s
-        order by s.name asc`,
-        [session.user_uuid]
+        `select (
+            select username
+            from comment as c2 inner join _user on _user.uuid=c2.user_uuid
+            where c2.uuid=c1.uuid
+        ) as reply_to_author, (
+            select message
+            from comment as c2
+            where c2.uuid=c1.uuid
+        ) as reply_to_comment
+        from comment as c1
+        where c1.uuid=$1`,
+        [replyTo]
     )
-
     if (err) {
-        res.status(500).send('STORAGE_SERVICE')
-        return
+        res.status(500).send('STORAGE_ERROR')
+    } else {
+        res.status(200).send(JSON.stringify(rows))
     }
-
-    res.status(200).send(JSON.stringify(rows))
 })
 
 app.listen(port, async (): Promise<void> => {

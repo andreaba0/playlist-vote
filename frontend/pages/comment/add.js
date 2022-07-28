@@ -1,5 +1,3 @@
-import { getClient } from "../../modules/redis"
-import { getClient as getPgClient } from "../../modules/pg"
 import { parseCookie, parseUserSession } from "../../modules/supply"
 import '../../modules/client/renew'
 import { useState } from "react"
@@ -30,10 +28,22 @@ export async function getServerSideProps(context) {
     }
     const session = parseUserSession(userAccessCookie)
 
-    const client = await getClient()
-    const redisUserSession = await client.get(`${session.user_uuid}.${session.session_uuid}`)
-    if (redisUserSession === null) {
-        context.res.setHeaders('set-cookie', 'session=;path=/;httpOnly')
+    var res = await fetch(`${process.env.DOMAIN}/api/auth/status`, {
+        method: 'POST',
+        body: JSON.stringify({session: userAccessCookie})
+    })
+    if (res.status >= 500) {
+        return {
+            props: {
+                status: 500,
+                data: null,
+                song: songName,
+                author: songAuthor
+            }
+        }
+    }
+    if (res.status >= 400) {
+        context.res.setHeader('set-cookie', 'session=;path=/;httpOnly')
         return {
             redirect: {
                 permanent: false,
@@ -52,24 +62,24 @@ export async function getServerSideProps(context) {
         }
     }
 
-    const pgClient = await getPgClient()
+    res = await fetch(`${process.env.DOMAIN}/api/backend/comment`, {
+        method: 'POST',
+        body: JSON.stringify({
+            reply_to: replyTo
+        })
+    })
+    if (res.status !== 200) return {
+        props: {
+            data: null,
+            song: songName,
+            author: songAuthor,
+            status: 500
+        }
+    }
 
-    var { rows } = await pgClient.query(
-        `select (
-            select username
-            from comment as c2 inner join _user on _user.uuid=c2.user_uuid
-            where c2.uuid=c1.uuid
-        ) as reply_to_author, (
-            select message
-            from comment as c2
-            where c2.uuid=c1.uuid
-        ) as reply_to_comment
-        from comment as c1
-        where c1.uuid=$1`,
-        [replyTo]
-    )
+    const data = await res.json()
 
-    if (rows.length === 0) return {
+    if (data.length === 0) return {
         props: {
             data: null,
             song: songName,
@@ -79,7 +89,7 @@ export async function getServerSideProps(context) {
 
     return {
         props: {
-            data: rows[0],
+            data: data[0],
             song: songName,
             author: songAuthor,
             reply_to: replyTo
@@ -94,7 +104,7 @@ export default function AddComment(props) {
 
     function submitForm(e) {
         e.preventDefault()
-        fetch('/api/add_comment', {
+        fetch('/api/client/comment/add', {
             method: 'POST',
             body: JSON.stringify({
                 song: props.song,

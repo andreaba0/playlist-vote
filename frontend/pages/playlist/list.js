@@ -21,7 +21,7 @@ export async function getServerSideProps(context) {
     }
     const res = await fetch(`${process.env.DOMAIN}/api/backend/playlist/list`, {
         method: 'POST',
-        body: userAccessCookie
+        body: JSON.stringify({session: userAccessCookie})
     })
     if(res.status>=500) {
         return {
@@ -31,8 +31,8 @@ export async function getServerSideProps(context) {
             }
         }
     }
-    if(res.status>400) {
-        context.res.setHeaders('set-cookie', 'session=;path=/;httpOnly')
+    if(res.status>=400) {
+        context.res.setHeader('set-cookie', 'session=;path=/;httpOnly')
         return {
             redirect: {
                 permanent: false,

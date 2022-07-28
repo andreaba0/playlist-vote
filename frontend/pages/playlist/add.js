@@ -21,7 +21,7 @@ export async function getServerSideProps(context) {
 
     const res = await fetch(`${process.env.DOMAIN}/api/auth/status`, {
         method: 'POST',
-        body: userAccessCookie
+        body: JSON.stringify({session: userAccessCookie})
     })
 
     if (res.status !== 200) {
