@@ -457,6 +457,106 @@ app.post('/api/backend/comment', async (req: Request, res: Response): Promise<vo
     }
 })
 
+app.post('/api/client/song/add', authMiddlewareClient, async (req: any, res: Response): Promise<void> => {
+    try {
+        const body = req.body || null
+        if (body === null) {
+            res.status(400).send('BODY_REQUIRED')
+            return
+        }
+        const songData = JSON.parse(body)
+        var [err, rows] = await pgQuery(
+            `insert into song (
+                name,
+                author,
+                user_uuid
+            ) values (
+                $1,
+                $2,
+                $3
+            ) returning *`,
+            [songData.song, songData.author, req._user.user_uuid]
+        )
+        if (err) {
+            res.status(500).send('STORAGE_ERROR')
+            return
+        }
+        if (rows.length > 0) {
+            res.status(200).send()
+        } else {
+            res.status(400).send('ALREADY_EXISTS')
+        }
+    } catch (e) {
+        console.log(e.message)
+        res.status(500).send('SERVER_ERROR')
+    }
+})
+
+app.post('/api/client/song/delete', authMiddlewareClient, async (req: any, res: Response): Promise<void> => {
+    try {
+        const body = req.body || null
+        if (body === null) {
+            res.status(400).send('BODY_REQUIRED')
+            return
+        }
+        const songData = JSON.parse(body)
+
+        var [err, rows] = await pgQuery(
+            `delete from song
+            where name=$1 and author=$2 and user_uuid=$3 returning *`,
+            [songData.song, songData.author, req._user.user_uuid]
+        )
+        if (err) {
+            res.status(500).send('STORAGE_ERROR')
+            return
+        }
+        if (rows.length > 0) {
+            res.status(200).send()
+        } else {
+            res.status(400).send('NOT_FOUND')
+        }
+    } catch (e) {
+        console.log(e.message)
+        res.status(500).send('SERVER_ERROR')
+    }
+})
+
+app.post('/api/client/song/vote', authMiddlewareClient, async (req: any, res: Response): Promise<void> => {
+    try {
+        const body = req.body || null
+        if (body === null) {
+            res.status(400).send('BODY_REQUIRED')
+            return
+        }
+        const songData = JSON.parse(body)
+
+        var [err, rows] = await pgQuery(
+            `insert into vote (
+                song_id,
+                user_uuid,
+                vote
+            ) values (
+                (
+                    select id
+                    from song
+                    where name=$1 and author=$2
+                ),
+                $3,
+                $4
+            ) on conflict (song_id, user_uuid) do update set vote=$4 returning *`,
+            [songData.song, songData.author, req._user.user_uuid, songData.vote]
+        )
+        if (err) {
+            res.status(500).send('STORAGE_ERROR')
+            return
+        }
+        res.status(200).send()
+    } catch (e) {
+        console.log(e.message)
+        res.status(500).send('SERVER_ERROR')
+    }
+})
+
 app.listen(port, async (): Promise<void> => {
     const client = getRedisClient()
     console.log(`Server is listening on ${port}`)

@@ -72,6 +72,19 @@ export function SongRow(props) {
         )
     }
 
+    function renderVoteSimplified() {
+        if (props.up_vote + props.down_vote < props.total_voters) return (
+            <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+        )
+        if (props.up_vote > props.down_vote) return (
+            <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+        )
+
+        return (
+            <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+        )
+    }
+
     function renderUpVote() {
         if (props.your_vote === 'up') return (
             <div className="flex flex-shrink-0 w-16 flex-row items-center justify-center text-gray-700 cursor-pointer hover:bg-gray-100">
@@ -105,7 +118,7 @@ export function SongRow(props) {
     }
 
     function voteThisSong(vote) {
-        fetch('/api/vote_song', {
+        fetch('/api/client/song/vote', {
             method: 'POST',
             body: JSON.stringify({
                 song: props.name,
@@ -165,9 +178,10 @@ export function SongRow(props) {
 
         return (
             <div className="w-full flex flex-row justify-center border-b-2 border-dotted border-gray-500 py-3">
-                <div className="w-3/4 flex-grow flex flex-col items-start pt-2 pl-3">
+                <div className="w-3/4 flex-grow flex flex-row justify-start h-6 items-center space-x-4 pl-5">
+                    {renderVoteSimplified()}
                     <div className="text-sm text-gray-800 font-bold">
-                        {props.name}{' '}-{' '}<span className="text-gray-500">{props.author}</span>
+                        {props.name}{' '}-{' '}<span className="text-gray-400">{props.author}</span>
                     </div>
                 </div>
                 {renderUpVote()}

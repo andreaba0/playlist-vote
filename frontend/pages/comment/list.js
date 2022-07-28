@@ -112,7 +112,7 @@ function CommentRow(props) {
     }
 
     function likeApi(status) {
-        fetch('/api/update_comment_like', {
+        fetch('/api/client/comment/like', {
             method: 'POST',
             body: JSON.stringify({
                 comment_uuid: comment_uuid,

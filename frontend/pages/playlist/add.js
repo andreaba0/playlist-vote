@@ -46,7 +46,7 @@ export default function AddSong(props) {
 
     function submitForm(e) {
         e.preventDefault()
-        fetch('/api/add_song', {
+        fetch('/api/client/song/add', {
             method: 'POST',
             body: JSON.stringify({
                 song: song,

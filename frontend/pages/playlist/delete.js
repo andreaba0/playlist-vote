@@ -67,7 +67,7 @@ export default function DeleteSong(props) {
     function submitForm(e) {
         e.preventDefault()
         if (confirm !== 'delete') return
-        fetch('/api/delete_song', {
+        fetch('/api/client/song/delete', {
             method: 'POST',
             body: JSON.stringify({
                 song: songName,
