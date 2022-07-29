@@ -569,7 +569,7 @@ app.post('/api/client/session/renew', authMiddlewareClient, async (req: any, res
             res.status(200).send()
         } else {
             res.setHeader('set-cookie', `session=;path=/;same-site=strict;httpOnly;max-age=${0}`)
-            res.status(500).send('SESSION_ERROR'))
+            res.status(500).send('SESSION_ERROR')
         }
     } catch (e) {
     console.log(e.message)

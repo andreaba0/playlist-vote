@@ -12,7 +12,7 @@ export async function getServerSideProps(context) {
 
     const res = await fetch(`${process.env.DOMAIN}/api/auth/status`, {
         method: 'POST',
-        body: JSON.stringify({session: userAccessCookie})
+        body: JSON.stringify({ session: userAccessCookie })
     })
     if (res.status !== 200) {
         context.res.setHeader('set-cookie', 'session=;path=/;httpOnly')
@@ -46,9 +46,17 @@ export default function SigninPage(props) {
                 password: password
             })
         })
-            .then(data => data.text())
+            .then(res => {
+                console.log('status: ', res.status)
+                return res.text()
+            })
             .then(data => {
-                router.push(`/${router.query['redirect'] || ''}`)
+                console.log('data: ', data)
+                if (data === 'OK') {
+                    setTimeout(() => {
+                        router.push(`/${router.query['redirect'] || ''}`)
+                    }, 1000)
+                }
             })
             .catch(e => console.log(e.message))
     }
