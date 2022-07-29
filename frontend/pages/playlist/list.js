@@ -12,7 +12,6 @@ import { HeadComponent } from "@/Components/head"
 export async function getServerSideProps(context) {
     const cookies = parseCookie(context.req.headers.cookie || '')
     const userAccessCookie = cookies['session'] || null
-    console.log(cookies)
     if (userAccessCookie === null) return {
         redirect: {
             permanent: false,
@@ -32,6 +31,7 @@ export async function getServerSideProps(context) {
         }
     }
     if(res.status>=400) {
+        console.log(await res.text())
         context.res.setHeader('set-cookie', 'session=;path=/;httpOnly')
         return {
             redirect: {
