@@ -5,6 +5,7 @@ import { getClient as getPgClient, query as pgQuery } from './postgresql'
 import cookieParser from 'cookie-parser'
 import { v4 as uuidv4 } from 'uuid'
 import crypto from 'crypto'
+import { CustomRequest } from "./custom_request";
 dotenv.config()
 
 const app = express();
@@ -30,7 +31,6 @@ async function userSignedIn(user_uuid, session_uuid, session_data): Promise<numb
 }
 
 async function authMiddlewareBackend(req: any, res: Response, next: NextFunction) {
-    const client = getRedisClient()
     const body = req.body || null
     if (body === null) {
         res.status(400).send('BODY_REQUIRED')
@@ -67,7 +67,6 @@ async function authMiddlewareBackend(req: any, res: Response, next: NextFunction
 }
 
 async function authMiddlewareClient(req: any, res: Response, next: NextFunction) {
-    const client = getRedisClient()
     const body = req.cookies['session'] || null
     if (body === null) {
         res.status(400).send('BODY_REQUIRED')
@@ -562,15 +561,20 @@ app.post('/api/client/session/renew', authMiddlewareClient, async (req: any, res
     try {
         const client = getRedisClient()
         const newCode = uuidv4()
-        await client.set(`${session.user_uuid}.${session.session_uuid}`, newCode, {
+        const r = await client.set(`${session.user_uuid}.${session.session_uuid}`, newCode, {
             EX: 60 * 10
         })
-        res.setHeader('set-cookie', `session=${session.user_uuid}.${session.session_uuid}.${newCode};path=/;same-site=strict;httpOnly;max-age=${60 * 10}`)
-        res.status(200).send()
+        if (r === 'OK') {
+            res.setHeader('set-cookie', `session=${session.user_uuid}.${session.session_uuid}.${newCode};path=/;same-site=strict;httpOnly;max-age=${60 * 10}`)
+            res.status(200).send()
+        } else {
+            res.setHeader('set-cookie', `session=;path=/;same-site=strict;httpOnly;max-age=${0}`)
+            res.status(500).send('SESSION_ERROR'))
+        }
     } catch (e) {
-        console.log(e.message)
-        res.status(500).send('SERVER_ERROR')
-    }
+    console.log(e.message)
+    res.status(500).send('SERVER_ERROR')
+}
 })
 
 function hashPassword(password, salt) {
@@ -609,7 +613,7 @@ app.post('/api/client/signin', async (req: Request, res: Response): Promise<void
             })
             if (r === 'OK') {
                 res.setHeader('set-cookie', `session=${user_uuid}.${session_uuid}.${session_data};path=/;same-site=strict;httpOnly;max-age=${60 * 10}`)
-                res.status(200).send()
+                res.status(200).send('OK')
             } else {
                 res.setHeader('set-cookie', `session=;path=/;same-site=strict;httpOnly`)
                 res.status(500).send('SESSION_ERROR')
