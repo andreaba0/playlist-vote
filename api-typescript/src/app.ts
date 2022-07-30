@@ -579,9 +579,13 @@ app.post('/api/client/signin', async (req: Request, res: Response): Promise<void
             res.status(500).send('STORAGE_ERROR')
             return
         }
-        if (rows.lengh === 0) res.status(400).send('CREDENTIALS')
-        else if (rows[0].password !== hashPassword(userData.password, rows[0].salt)) res.status(400).send('CREDENTIALS')
-        else {
+        if (rows.length === 0) {
+            res.status(400).send('CREDENTIALS')
+            return
+        } else if (rows[0].password !== hashPassword(userData.password, rows[0].salt)) {
+            res.status(400).send('CREDENTIALS')
+            return
+        } else {
             const user_uuid = rows[0].uuid
             const session_uuid = uuidv4()
             const session_data = uuidv4()
