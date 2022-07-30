@@ -1,5 +1,4 @@
 import { parseCookie, parseUserSession } from "../../modules/supply"
-import '../../modules/client/renew'
 import { useState } from "react"
 import { v4 as uuidv4 } from "uuid"
 import { MdClose, MdAdd, MdThumbUp, MdThumbDown, MdThumbUpOffAlt, MdThumbDownOffAlt, MdExitToApp, MdOutlineModeComment } from 'react-icons/md'
@@ -31,7 +30,6 @@ export async function getServerSideProps(context) {
         }
     }
     if(res.status>=400) {
-        console.log(await res.text())
         context.res.setHeader('set-cookie', 'session=;path=/;httpOnly')
         return {
             redirect: {

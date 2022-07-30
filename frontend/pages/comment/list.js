@@ -1,5 +1,4 @@
 import { parseCookie, parseUserSession } from "../../modules/supply"
-import '../../modules/client/renew'
 import { useState } from "react"
 import { v4 as uuidv4 } from "uuid"
 import { MdClose, MdAdd, MdThumbUp, MdThumbDown, MdThumbUpOffAlt, MdThumbDownOffAlt, MdExitToApp, MdReply, MdOutlineAddComment } from 'react-icons/md'
@@ -36,7 +35,6 @@ export async function getServerSideProps(context) {
             author: songAuthor
         })
     })
-    console.log(res.status)
     if (res.status >= 500) return {
         props: {
             status: 500,

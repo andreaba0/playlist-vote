@@ -38,7 +38,6 @@ export default function SigninPage(props) {
 
     function submitForm(e) {
         e.preventDefault()
-        console.log(username, password)
         fetch('/api/client/signin', {
             method: 'POST',
             body: JSON.stringify({
@@ -47,15 +46,11 @@ export default function SigninPage(props) {
             })
         })
             .then(res => {
-                console.log('status: ', res.status)
                 return res.text()
             })
             .then(data => {
-                console.log('data: ', data)
                 if (data === 'OK') {
-                    setTimeout(() => {
-                        router.push(`/${router.query['redirect'] || ''}`)
-                    }, 1000)
+                    router.push(`/${router.query['redirect'] || ''}`)
                 }
             })
             .catch(e => console.log(e.message))

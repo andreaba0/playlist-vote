@@ -556,27 +556,6 @@ app.post('/api/client/song/vote', authMiddlewareClient, async (req: any, res: Re
     }
 })
 
-app.post('/api/client/session/renew', authMiddlewareClient, async (req: any, res: Response): Promise<void> => {
-    const session = req._user
-    try {
-        const client = getRedisClient()
-        const newCode = uuidv4()
-        const r = await client.set(`${session.user_uuid}.${session.session_uuid}`, newCode, {
-            EX: 60 * 10
-        })
-        if (r === 'OK') {
-            res.setHeader('set-cookie', `session=${session.user_uuid}.${session.session_uuid}.${newCode};path=/;same-site=strict;httpOnly;max-age=${60 * 10}`)
-            res.status(200).send()
-        } else {
-            res.setHeader('set-cookie', `session=;path=/;same-site=strict;httpOnly;max-age=${0}`)
-            res.status(500).send('SESSION_ERROR')
-        }
-    } catch (e) {
-    console.log(e.message)
-    res.status(500).send('SERVER_ERROR')
-}
-})
-
 function hashPassword(password, salt) {
     return crypto.createHash('sha256').update(`${password}:${salt}`).digest('hex')
 }
@@ -588,8 +567,6 @@ app.post('/api/client/signin', async (req: Request, res: Response): Promise<void
         res.status(400).send('BODY_REQUIRED')
         return
     }
-
-
     try {
         const userData = JSON.parse(body)
         const [err, rows] = await pgQuery(
@@ -608,10 +585,12 @@ app.post('/api/client/signin', async (req: Request, res: Response): Promise<void
             const user_uuid = rows[0].uuid
             const session_uuid = uuidv4()
             const session_data = uuidv4()
-            var r = await redisClient.set(`${user_uuid}.${session_uuid}`, session_data, {
-                EX: 60 * 10
-            })
-            if (r === 'OK') {
+            const [saddReply, setReply] = await redisClient
+                .multi()
+                .sAdd(user_uuid, session_uuid)
+                .set(`${user_uuid}.${session_uuid}`, session_data)
+                .exec()
+            if (saddReply === 1 && setReply === 'OK') {
                 res.setHeader('set-cookie', `session=${user_uuid}.${session_uuid}.${session_data};path=/;same-site=strict;httpOnly;max-age=${60 * 10}`)
                 res.status(200).send('OK')
             } else {
@@ -628,13 +607,21 @@ app.post('/api/client/signin', async (req: Request, res: Response): Promise<void
 app.post('/api/client/signout', authMiddlewareClient, async (req: any, res: Response): Promise<void> => {
     const redisClient = await getRedisClient()
     try {
-        const redisUserSession = await redisClient.getDel(`${req._user.user_uuid}.${req._user.session_uuid}`)
+        const [sremReply, getdelReply] = await redisClient
+            .multi()
+            .sRem(req._user.user_uuid, req._user.session_uuid)
+            .getDel(`${req._user.user_uuid}.${req._user.session_uuid}`)
+            .exec()
         res.setHeader('set-cookie', `session=;path=/;same-site=strict;httpOnly`)
         res.status(200).send()
     } catch (e) {
         console.log(e.message)
         res.status(500).send('SERVER_ERROR')
     }
+})
+
+app.post('/api/client/password/change', authMiddlewareClient, async (req: any, res: Response): Promise<void> => {
+    res.status(500).send('NOT_IMPLEMENTED_YET')
 })
 
 app.listen(port, async (): Promise<void> => {
