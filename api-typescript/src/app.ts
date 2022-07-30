@@ -591,7 +591,7 @@ app.post('/api/client/signin', async (req: Request, res: Response): Promise<void
                 .set(`${user_uuid}.${session_uuid}`, session_data)
                 .exec()
             if (saddReply === 1 && setReply === 'OK') {
-                res.setHeader('set-cookie', `session=${user_uuid}.${session_uuid}.${session_data};path=/;same-site=strict;httpOnly;max-age=${60 * 10}`)
+                res.setHeader('set-cookie', `session=${user_uuid}.${session_uuid}.${session_data};path=/;same-site=strict;httpOnly;max-age=${60 * 60 * 24 * 60}`)
                 res.status(200).send('OK')
             } else {
                 res.setHeader('set-cookie', `session=;path=/;same-site=strict;httpOnly`)
