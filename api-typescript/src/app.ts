@@ -579,8 +579,8 @@ app.post('/api/client/signin', async (req: Request, res: Response): Promise<void
             res.status(500).send('STORAGE_ERROR')
             return
         }
-        if (rows.lengh === 0) res.status(400).send('USER_NOT_FOUND')
-        else if (rows[0].password !== hashPassword(userData.password, rows[0].salt)) res.status(400).send('WRONG_PASSWORD')
+        if (rows.lengh === 0) res.status(400).send('CREDENTIALS')
+        else if (rows[0].password !== hashPassword(userData.password, rows[0].salt)) res.status(400).send('CREDENTIALS')
         else {
             const user_uuid = rows[0].uuid
             const session_uuid = uuidv4()
@@ -600,7 +600,7 @@ app.post('/api/client/signin', async (req: Request, res: Response): Promise<void
         }
     } catch (e) {
         console.log(e.message)
-        res.status(400).send('BODY_MALFORMED')
+        res.status(500).send('SERVER_ERROR')
     }
 })
 
