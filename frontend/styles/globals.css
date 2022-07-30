@@ -5,8 +5,13 @@
 body {
     background: #f0f0f0;
     overflow-x: hidden;
+    scrollbar-width: none;
 }
 
 ::-webkit-scrollbar {
+    display: none;
+}
+
+::-moz-scrollbar {
     display: none;
 }

@@ -5,6 +5,7 @@ import { useRouter } from "next/router";
 
 export function Menu(props) {
     const router = useRouter()
+    const pathname = router.pathname
     var [menuDisplay, setMenuDisplay] = useState(0)
 
     function setMenuStatus() {
@@ -20,16 +21,31 @@ export function Menu(props) {
             })
     }
 
+    function renderCurrentPath() {
+        if(pathname==='/profile') return (
+            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+        )
+
+        return (null)
+    }
+
+    function profilePageAction() {
+        if(pathname==='/profile') setMenuDisplay(0)
+        else router.push('/profile')
+    }
+
     function showUserMenu() {
         if (menuDisplay === 0) return (null)
 
         return (
             <div className="flex flex-col items-center justify-start text-base font-medium text-gray-600 shadow-md w-64 absolute right-2 top-10 bg-white z-40 border-solid border-[1px] border-gray-200 rounded-md">
-                <div onClick={() => router.push('/profile')} className="flex flex-row h-12 justify-center items-center w-full space-x-4 hover:bg-gray-100 cursor-pointer">
+                <div onClick={profilePageAction} className="flex flex-row h-12 justify-start items-center w-full space-x-4 hover:bg-gray-100 cursor-pointer">
+                    <div className="w-8 flex items-center justify-center">{renderCurrentPath()}</div>
                     <div><FaRegUser size={17} /></div>
                     <div>Il tuo account</div>
                 </div>
-                <div onClick={exit} className="flex flex-row h-12 justify-center items-center w-full space-x-4 hover:bg-gray-100 cursor-pointer">
+                <div onClick={exit} className="flex flex-row h-12 justify-start items-center w-full space-x-4 hover:bg-gray-100 cursor-pointer">
+                    <div className="w-8"></div>
                     <div><MdExitToApp size={21} /></div>
                     <div>Esci dall'app</div>
                 </div>
@@ -38,7 +54,7 @@ export function Menu(props) {
     }
 
     function renderDropIcon() {
-        if(menuDisplay===0) return(<FaCaretDown size={15} />)
+        if (menuDisplay === 0) return (<FaCaretDown size={15} />)
         return (<FaCaretUp size={15} />)
     }
 
