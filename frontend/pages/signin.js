@@ -103,14 +103,14 @@ export default function SigninPage(props) {
     return (
         <div className="w-screen flex flex-col items-center">
             <div className="w-full max-w-lg bg-white flex flex-col items-center py-3 space-y-8">
-                <div>
+                <div className="font-medium text-2xl text-gray-700">
                     Accedi
                 </div>
                 <div className="py-3">
                     <form onSubmit={submitForm} className="flex w-full flex-col items-center space-y-6">
                         <input type="text" onChange={iSetUsername} placeholder="username" className="border-b-2 border-black" />
                         <input type="password" onChange={iSetPassword} placeholder="password" className="border-b-2 border-black" />
-                        <button type="submit">
+                        <button type="submit" className="font-bold text-sm text-white bg-blue-600 rounded px-12 py-3">
                             Accedi
                         </button>
                     </form>
