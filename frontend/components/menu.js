@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { MdExitToApp, MdOutlineVpnKey } from "react-icons/md"
-import { FaUser, FaCaretDown, FaCaretUp, FaKey } from 'react-icons/fa'
+import { FaUser, FaCaretDown, FaCaretUp, FaKey, FaRegUser } from 'react-icons/fa'
 import { useRouter } from "next/router";
 
 export function Menu(props) {
@@ -25,13 +25,13 @@ export function Menu(props) {
 
         return (
             <div className="flex flex-col items-center justify-start text-base font-medium text-gray-600 shadow-md w-64 absolute right-2 top-10 bg-white z-40 border-solid border-[1px] border-gray-200 rounded-md">
+                <div onClick={() => router.push('/profile')} className="flex flex-row h-12 justify-center items-center w-full space-x-4 hover:bg-gray-100 cursor-pointer">
+                    <div><FaRegUser size={17} /></div>
+                    <div>Il tuo account</div>
+                </div>
                 <div onClick={exit} className="flex flex-row h-12 justify-center items-center w-full space-x-4 hover:bg-gray-100 cursor-pointer">
                     <div><MdExitToApp size={21} /></div>
                     <div>Esci dall'app</div>
-                </div>
-                <div onClick={() => router.push('/password/change')} className="flex flex-row h-12 justify-center items-center w-full space-x-4 hover:bg-gray-100 cursor-pointer">
-                    <div><MdOutlineVpnKey size={21} /></div>
-                    <div>Cambia password</div>
                 </div>
             </div>
         )
