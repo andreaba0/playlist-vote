@@ -35,9 +35,14 @@ export default function SigninPage(props) {
 
     var [username, setUsername] = useState('')
     var [password, setPassword] = useState('')
+    var [error, setError] = useState(null)
 
     function submitForm(e) {
         e.preventDefault()
+        if (username === '' || password === '') {
+            setError('EMPTY')
+            return
+        }
         fetch('/api/client/signin', {
             method: 'POST',
             body: JSON.stringify({
@@ -51,26 +56,57 @@ export default function SigninPage(props) {
             .then(data => {
                 if (data === 'OK') {
                     router.push(`/${router.query['redirect'] || ''}`)
+                } else {
+                    setError(data)
                 }
             })
-            .catch(e => console.log(e.message))
+            .catch(e => {
+                console.log(e.message)
+                setError(e.message)
+            })
     }
 
     function iSetUsername(e) {
+        setError(null)
         setUsername(e.target.value)
     }
 
     function iSetPassword(e) {
+        setError(null)
         setPassword(e.target.value)
+    }
+
+    function renderErrorMessage() {
+        switch (error) {
+            case 'CREDENTIALS':
+                return 'Username o password errato/i'
+            case 'EMPTY':
+                return 'Username e password richiesti'
+            case 'STORAGE_ERROR':
+            case 'SESSION_ERROR':
+            case'SERVER_ERROR':
+                return 'Errore del server'
+            default:
+                return 'Errore sconosciuto'
+        }
+    }
+
+    function renderError() {
+        if (error === null) return (null)
+        return (
+            <div className="w-full bg-red-500 text-white p-4 font-medium text-sm">
+                {renderErrorMessage()}
+            </div>
+        )
     }
 
     return (
         <div className="w-screen flex flex-col items-center">
-            <div className="w-full max-w-lg bg-white flex flex-col items-center mt-5 py-3">
+            <div className="w-full max-w-lg bg-white flex flex-col items-center py-3 space-y-8">
                 <div>
                     Accedi
                 </div>
-                <div className="mt-3">
+                <div className="py-3">
                     <form onSubmit={submitForm} className="flex w-full flex-col items-center space-y-6">
                         <input type="text" onChange={iSetUsername} placeholder="username" className="border-b-2 border-black" />
                         <input type="password" onChange={iSetPassword} placeholder="password" className="border-b-2 border-black" />
@@ -79,6 +115,7 @@ export default function SigninPage(props) {
                         </button>
                     </form>
                 </div>
+                {renderError()}
             </div>
         </div>
     )
