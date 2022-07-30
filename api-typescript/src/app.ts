@@ -16,7 +16,12 @@ const port = 3001;
 async function userSignedIn(user_uuid, session_uuid, session_data): Promise<number> {
     const client = getRedisClient()
     try {
-        const data = await client.get(`${user_uuid}.${session_uuid}`)
+        const currentDate = String(new Date().getTime())
+        const [data, hsetReply] = await client
+            .multi()
+            .hGet(`${user_uuid}.${session_uuid}`, 'token')
+            .hSet(`${user_uuid}.${session_uuid}`, 'last_access', currentDate)
+            .exec()
         if (data === null) {
             return 400
         } else if (data !== session_data) {
@@ -586,15 +591,19 @@ app.post('/api/client/signin', async (req: Request, res: Response): Promise<void
             res.status(400).send('CREDENTIALS')
             return
         } else {
+            const currentDate = String(new Date().getTime())
             const user_uuid = rows[0].uuid
             const session_uuid = uuidv4()
             const session_data = uuidv4()
-            const [saddReply, setReply] = await redisClient
+            const [saddReply, hsetTokenReply, hsetUserAgentReply] = await redisClient
                 .multi()
                 .sAdd(user_uuid, session_uuid)
-                .set(`${user_uuid}.${session_uuid}`, session_data)
+                .hSet(`${user_uuid}.${session_uuid}`, 'token', session_data)
+                .hSet(`${user_uuid}.${session_uuid}`, 'user-agent', req.headers['user-agent'] || '')
+                .hSet(`${user_uuid}.${session_uuid}`, 'created_at', currentDate)
+                .hSet(`${user_uuid}.${session_uuid}`, 'last_access', currentDate)
                 .exec()
-            if (saddReply === 1 && setReply === 'OK') {
+            if (saddReply === 1 && hsetTokenReply === 1 && hsetUserAgentReply === 1) {
                 res.setHeader('set-cookie', `session=${user_uuid}.${session_uuid}.${session_data};path=/;same-site=strict;httpOnly;max-age=${60 * 60 * 24 * 60}`)
                 res.status(200).send('OK')
             } else {
@@ -614,7 +623,7 @@ app.post('/api/client/signout', authMiddlewareClient, async (req: any, res: Resp
         const [sremReply, getdelReply] = await redisClient
             .multi()
             .sRem(req._user.user_uuid, req._user.session_uuid)
-            .getDel(`${req._user.user_uuid}.${req._user.session_uuid}`)
+            .del(`${req._user.user_uuid}.${req._user.session_uuid}`)
             .exec()
         res.setHeader('set-cookie', `session=;path=/;same-site=strict;httpOnly`)
         res.status(200).send()
@@ -626,6 +635,35 @@ app.post('/api/client/signout', authMiddlewareClient, async (req: any, res: Resp
 
 app.post('/api/client/password/change', authMiddlewareClient, async (req: any, res: Response): Promise<void> => {
     res.status(500).send('NOT_IMPLEMENTED_YET')
+})
+
+app.get('/api/client/session/list', authMiddlewareClient, async (req: any, res: Response): Promise<void> => {
+    const redisclient = await getRedisClient()
+    var sessionList = []
+    try {
+        for await (const member of redisclient.sScanIterator(req._user.user_uuid)) {
+            var sessionData = await redisclient.hGetAll(`${req._user.user_uuid}.${member}`)
+            if (sessionData !== null) sessionList.push(sessionData)
+        }
+        res.status(200).send(JSON.stringify(sessionList))
+    } catch (e) {
+        console.log(e.message)
+        res.status(500).send('SESSION_ERROR')
+    }
+})
+
+app.delete('/api/client/session/:id', authMiddlewareClient, async(req: any, res: Response): Promise<void> => {
+    const id = req.params.id || null
+    if(id===null) {
+        res.status(400).send('SESSION_ID_REQUIRED')
+        return
+    }
+    if(id===req._user.session_uuid) {
+        res.status(400).send('IN_USE')
+        return
+    }
+
+    //TODO: delete session from redis store
 })
 
 app.listen(port, async (): Promise<void> => {
