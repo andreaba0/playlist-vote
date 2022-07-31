@@ -643,7 +643,7 @@ app.get('/api/client/session/list', authMiddlewareClient, async (req: any, res: 
     try {
         for await (const member of redisclient.sScanIterator(req._user.user_uuid)) {
             var sessionData = await redisclient.hGetAll(`${req._user.user_uuid}.${member}`)
-            if (sessionData !== null) sessionList.push(sessionData)
+            if (sessionData !== null) sessionList.push({ id: member, ...sessionData })
         }
         res.status(200).send(JSON.stringify(sessionList))
     } catch (e) {
@@ -652,18 +652,77 @@ app.get('/api/client/session/list', authMiddlewareClient, async (req: any, res: 
     }
 })
 
-app.delete('/api/client/session/:id', authMiddlewareClient, async(req: any, res: Response): Promise<void> => {
+app.delete('/api/client/session/:id', authMiddlewareClient, async (req: any, res: Response): Promise<void> => {
+    const redisClient = await getRedisClient()
     const id = req.params.id || null
-    if(id===null) {
+    if (id === null) {
         res.status(400).send('SESSION_ID_REQUIRED')
         return
     }
-    if(id===req._user.session_uuid) {
+    if (id === req._user.session_uuid) {
         res.status(400).send('IN_USE')
         return
     }
 
-    //TODO: delete session from redis store
+
+    try {
+        const [sremReply, delReply] = await redisClient
+            .multi()
+            .sRem(req._user.user_uuid, id)
+            .del(`${req._user.user_uuid}.${id}`)
+            .exec()
+        if (sremReply === 1 && delReply === 1) {
+            res.status(200).send('OK')
+        } else {
+            res.status(400).send('DELETION_ERROR')
+        }
+    } catch (e) {
+        console.log(e.message)
+        res.status(500).send('SESSION_ERROR')
+    }
+})
+
+app.post('/api/client/password/change', authMiddlewareClient, async (req: any, res: Response): Promise<void> => {
+    const body = req.body || null
+    if (body === null) {
+        res.status(400).send('BODY_REQUIRED')
+        return
+    }
+    try {
+        const bodyData = JSON.parse(body)
+        const oldPassword = bodyData.old_password || null
+        const newPassword = bodyData.new_password || null
+        if (oldPassword === null || newPassword === null) {
+            res.status(400).send('BODY_NOT_COMPLETE')
+            return
+        }
+        const [errReadonly, rowsReadonly] = await pgQuery(
+            `select password, salt from _user where uuid=$1`,
+            [req._user.user_uuid]
+        )
+        if (errReadonly) {
+            res.status(500).send('STORAGE_ERROR')
+            return
+        }
+        const user = rowsReadonly[0]
+        const salt = user.salt
+        const oldDbPassword = user.password
+        if (hashPassword(oldPassword, salt) !== oldDbPassword) {
+            res.status(401).send('PASSWORD_MISMATCH')
+            return
+        }
+        const [err, rows] = await pgQuery(
+            `update _user set password=$1 where uuid=$2 and password=$3`,
+            [hashPassword(newPassword, salt), req._user.user_uuid, oldDbPassword]
+        )
+        if (err) {
+            res.status(500).send('STORAGE_ERROR')
+        } else {
+            res.status(200).send('OK')
+        }
+    } catch (e) {
+        res.status(500).send('SERVER_ERROR')
+    }
 })
 
 app.listen(port, async (): Promise<void> => {
