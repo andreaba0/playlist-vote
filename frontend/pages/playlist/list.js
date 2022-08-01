@@ -329,7 +329,7 @@ export default function Home(props) {
                         }} />
                     </div>
                 </div>
-                <div className="py-6 w-full flex flex-row justify-center space-x-4">
+                <div className="py-6 w-full flex md:flex-row flex-col items-center md:space-y-0 space-y-4 justify-center md:space-x-4">
                     <div className="w-56">
                         <DropDownMenu value="Ordina per:" options={
                             [
