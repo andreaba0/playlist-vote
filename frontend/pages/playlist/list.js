@@ -221,11 +221,14 @@ export default function Home(props) {
     var [orderBy, setOrderBy] = useState(props.order_by || null)
     var [users, setUsers] = useState(props.users)
     var [orderByAuthor, setOrderByAuthor] = useState(props.filter_by_author || null)
+    var [matchString, setMatchString] = useState('')
     const router = useRouter()
 
     function renderSongList() {
         const elem = []
         data.map((obj) => {
+            const tempName = `${obj.name} - ${obj.author}`
+            if (matchString !== '' && tempName.match(matchString) === null) return
             elem.push(
                 <SongRow
                     name={obj.name}
@@ -292,6 +295,10 @@ export default function Home(props) {
         )
     }
 
+    function searchChange(e) {
+        setMatchString(e.target.value)
+    }
+
     function pageBody() {
         if (props.status === 500) {
             return (
@@ -356,6 +363,14 @@ export default function Home(props) {
                             reloadPage()
                         }} />
                     </div>
+                </div>
+                <div className="py-6 w-full flex flex-col items-center">
+                    <input
+                        type="text"
+                        placeholder="Termine di ricerca"
+                        className="py-2 px-3 w-80 box-border font-medium text-sm text-gray-700 border-gray-600 border-solid border-[1px] rounded"
+                        onChange={searchChange}
+                    />
                 </div>
                 <div className="w-full flex flex-col items-center">
                     {renderSongList()}
