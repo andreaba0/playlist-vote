@@ -120,8 +120,7 @@ async function playlistList(req: any, res: Response): Promise<void> {
         author: null
     }
     try {
-        const body = JSON.parse(req.body || '{}')
-        switch (body.order || '') {
+        switch (req.cookies['filter_order_by'] || '') {
             case 'alf_asc':
                 filters.order = 's.name asc'
                 break
@@ -135,9 +134,10 @@ async function playlistList(req: any, res: Response): Promise<void> {
                 filters.order = 's.created_at desc'
                 break
         }
-        filters.author = body.author || null
+        if (req.cookies['filter_by_author'])
+            filters.author = req.cookies['filter_by_author']
     } catch (e) {
-        console.log(e)
+        console.log(e.message)
     }
 
     function itemList() {

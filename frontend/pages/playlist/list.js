@@ -7,6 +7,7 @@ import { useRouter } from 'next/router'
 import { Page } from "@/Components/page"
 import { Menu } from "@/Components/menu"
 import { HeadComponent } from "@/Components/head"
+import { DropDownMenu } from "@/Components/dropdown"
 
 export async function getServerSideProps(context) {
     const cookies = parseCookie(context.req.headers.cookie || '')
@@ -22,7 +23,11 @@ export async function getServerSideProps(context) {
     }
     const res = await fetch(`${process.env.DOMAIN}/api/backend/playlist/list`, {
         method: 'POST',
-        body: JSON.stringify({ session: userAccessCookie })
+        body: JSON.stringify({
+            session: userAccessCookie,
+            order: orderBy || undefined,
+            author: (orderByAuthor === 'all') ? undefined : orderByAuthor || undefined
+        })
     })
     if (res.status >= 500) {
         return {
@@ -212,12 +217,10 @@ export function SongRow(props) {
 
 export default function Home(props) {
     var [data, setData] = useState(props.data)
-    console.log(props.data)
     var [display, setDisplay] = useState(props.display || 'full')
-    var [orderBy, setOrderBy] = useState(props.order_by)
-    var [orderByAuthor, setOrderByAuthor] = useState(props.filter_by_author)
+    var [orderBy, setOrderBy] = useState(props.order_by || null)
     var [users, setUsers] = useState(props.users)
-    var [filterDisplayOpened, setFilterDisplayOpened] = useState(0)
+    var [orderByAuthor, setOrderByAuthor] = useState(props.filter_by_author || null)
     const router = useRouter()
 
     function renderSongList() {
@@ -243,6 +246,19 @@ export default function Home(props) {
         return elem
     }
 
+    function buildUsersOptionList() {
+        var res = []
+        for (var i = 0; i < users.length; i++) res.push({
+            key: users[i].username,
+            text: users[i].username
+        })
+        res.push({
+            key: 'all',
+            text: 'tutti'
+        })
+        return res
+    }
+
     function goToAdd() {
         router.push('/playlist/add')
     }
@@ -252,10 +268,15 @@ export default function Home(props) {
             method: 'POST'
         })
             .then(res => {
+                if (res.status !== 200) return res.text()
                 return res.json()
             })
             .then(data => {
-                setData(data)
+                if (typeof data === 'string') console.log(data)
+                else {
+                    setData(data.list)
+                    setUsers(data.users)
+                }
             })
     }
 
@@ -271,41 +292,6 @@ export default function Home(props) {
         )
     }
 
-    function parseVistaType() {
-        if (display === 'full') return "completa"
-        return "semplificata"
-    }
-
-    function parseArrow() {
-        if (filterDisplayOpened === 1) return <FaCaretUp size={15} />
-        return <FaCaretDown size={15} />
-    }
-
-    function displayFilterSelection() {
-        if (filterDisplayOpened === 1) return (
-            <div className="w-60 absolute z-10 top-10 right-0 flex flex-col items-center rounded-md border-solid border-gray-200 border-[1px] bg-white shadow-md">
-                {(display !== 'full') ? (
-                    <div onClick={() => {
-                        document.cookie = 'filter_display=full; path=/; samesite=lax'
-                        setDisplay('full')
-                    }} className="w-full py-2 text-center">
-                        completa
-                    </div>
-                ) : (null)}
-                {(display !== 'simplified') ? (
-                    <div onClick={() => {
-                        document.cookie = 'filter_display=simplified; path=/; samesite=lax'
-                        setDisplay('simplified')
-                    }} className="w-full py-2 text-center">
-                        semplificata
-                    </div>
-                ) : (null)}
-            </div>
-        )
-
-        return (null)
-    }
-
     function pageBody() {
         if (props.status === 500) {
             return (
@@ -319,14 +305,56 @@ export default function Home(props) {
         return (
             <div className="flex flex-col w-full items-center">
                 <div className="w-full flex flex-row justify-center py-6">
-                    <div onClick={() => { setFilterDisplayOpened((filterDisplayOpened + 1) % 2) }} className="flex select-none space-x-4 flex-row w-60 h-9 rounded border-gray-200 border-solid border-[1px] relative items-center justify-center font-medium text-base text-gray-700">
-                        <div>
-                            Mostra vista: {parseVistaType()}
-                        </div>
-                        <div>
-                            {parseArrow()}
-                        </div>
-                        {displayFilterSelection()}
+                    <div className="w-60">
+                        <DropDownMenu value="Mostra vista:" options={
+                            [
+                                {
+                                    key: 'full',
+                                    text: 'completa'
+                                }, {
+                                    key: 'simplified',
+                                    text: 'semplificata'
+                                }
+                            ]
+                        } default={props.display} onChange={(selected) => {
+                            document.cookie = `filter_display=${selected}; path=/; samesite=lax`
+                            setDisplay(selected)
+                        }} />
+                    </div>
+                </div>
+                <div className="py-6 w-full flex flex-row justify-center space-x-4">
+                    <div className="w-56">
+                        <DropDownMenu value="Ordina per:" options={
+                            [
+                                {
+                                    key: 'alf_asc',
+                                    text: 'ALF ASC'
+                                }, {
+                                    key: 'alf_desc',
+                                    text: 'ALF DESC'
+                                }, {
+                                    key: 'date_asc',
+                                    text: 'DATE ASC'
+                                }, {
+                                    key: 'date_desc',
+                                    text: 'DATE DESC'
+                                }
+                            ]
+                        } default="alf_asc" onChange={(selected) => {
+                            document.cookie = `filter_order_by=${selected}; path=/; samesite=lax`
+                            setOrderBy(selected)
+                            reloadPage()
+                        }} />
+                    </div>
+                    <div className="w-56">
+                        <DropDownMenu value="Filtra per:" options={
+                            buildUsersOptionList()
+                        } default={(orderByAuthor === null) ? 'all' : orderByAuthor} onChange={(selected) => {
+                            if (selected === 'all') document.cookie = `filter_by_author=${selected}; path=/; samesite=lax; max-age=0`
+                            else document.cookie = `filter_by_author=${selected}; path=/; samesite=lax`
+                            setOrderByAuthor(selected)
+                            reloadPage()
+                        }} />
                     </div>
                 </div>
                 <div className="w-full flex flex-col items-center">
