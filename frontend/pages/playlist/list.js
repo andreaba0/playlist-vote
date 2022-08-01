@@ -22,9 +22,9 @@ export async function getServerSideProps(context) {
     }
     const res = await fetch(`${process.env.DOMAIN}/api/backend/playlist/list`, {
         method: 'POST',
-        body: JSON.stringify({session: userAccessCookie})
+        body: JSON.stringify({ session: userAccessCookie })
     })
-    if(res.status>=500) {
+    if (res.status >= 500) {
         return {
             props: {
                 status: 500,
@@ -32,7 +32,7 @@ export async function getServerSideProps(context) {
             }
         }
     }
-    if(res.status>=400) {
+    if (res.status >= 400) {
         context.res.setHeader('set-cookie', 'session=;path=/;httpOnly')
         return {
             redirect: {
@@ -91,14 +91,14 @@ export function SongRow(props) {
 
     function renderUpVote() {
         if (props.your_vote === 'up') return (
-            <div className="flex flex-shrink-0 w-16 flex-row items-center justify-center text-gray-700 cursor-pointer hover:bg-gray-100">
+            <div className="flex flex-shrink-0 w-14 flex-row items-center justify-center text-gray-700 cursor-pointer hover:bg-gray-100">
                 <div className=" font-bold px-1">{props.up_vote}</div>
                 <MdThumbUp size={21} />
             </div>
         )
 
         return (
-            <div onClick={() => { voteThisSong('up') }} className="flex flex-shrink-0 w-16 flex-row items-center justify-center text-gray-700 cursor-pointer hover:bg-gray-100">
+            <div onClick={() => { voteThisSong('up') }} className="flex flex-shrink-0 w-14 flex-row items-center justify-center text-gray-700 cursor-pointer hover:bg-gray-100">
                 <div className="font-bold px-1">{props.up_vote}</div>
                 <MdThumbUpOffAlt size={21} />
             </div>
@@ -107,16 +107,42 @@ export function SongRow(props) {
 
     function renderDownVote() {
         if (props.your_vote === 'down') return (
-            <div className="flex flex-shrink-0 w-16 flex-row items-center justify-center text-gray-700 cursor-pointer hover:bg-gray-100">
+            <div className="flex flex-shrink-0 w-14 flex-row items-center justify-center text-gray-700 cursor-pointer hover:bg-gray-100">
                 <div className="font-bold px-1">{props.down_vote}</div>
                 <MdThumbDown size={21} />
             </div>
         )
 
         return (
-            <div onClick={() => { voteThisSong('down') }} className="flex flex-shrink-0 w-16 flex-row items-center justify-center text-gray-700 cursor-pointer hover:bg-gray-100">
+            <div onClick={() => { voteThisSong('down') }} className="flex flex-shrink-0 w-14 flex-row items-center justify-center text-gray-700 cursor-pointer hover:bg-gray-100">
                 <div className="font-bold px-1">{props.down_vote}</div>
                 <MdThumbDownOffAlt size={21} />
+            </div>
+        )
+    }
+
+    function renderCommentsNumber() {
+        return (
+            <div onClick={() => {
+                router.push(`/comment/list?song=${props.name}&author=${props.author}`)
+            }} className="text-gray-700 w-20 flex flex-row flex-shrink-0 items-center justify-center cursor-pointer border-gray-700 border-l-2 hover:bg-gray-100">
+                <div className="font-bold px-1 w-9">{props.total_comments}</div>
+                <MdOutlineModeComment size={21} />
+            </div>
+        )
+    }
+
+    function renderDeleteSong() {
+        if (props.is_your !== 1) return (null)
+        return (
+            <div
+                className="flex flex-row w-16 items-center justify-center cursor-pointer hover:bg-gray-100"
+                onClick={() => {
+                    router.push(`/playlist/delete?song=${props.name}&author=${props.author}`)
+                }}
+            >
+                <div className="w-7"></div>
+                <MdClose size={21} />
             </div>
         )
     }
@@ -156,26 +182,13 @@ export function SongRow(props) {
                             {(props.is_your === 1) ? 'Tu' : props.created_by}
                         </div>
                     </div>
-                    {(props.is_your) ? (
-                        <div
-                            className="flex w-14 items-center justify-center cursor-pointer hover:bg-gray-100"
-                            onClick={() => {
-                                router.push(`/playlist/delete?song=${props.name}&author=${props.author}`)
-                            }}
-                        >
-                            <MdClose size={21} />
-                        </div>
-                    ) : (null)}
+                    {renderDeleteSong()}
                 </div>
                 <div className="w-full flex flex-row pb-2 pl-3">
                     {renderVote()}
                     {renderUpVote()}
                     {renderDownVote()}
-                    <div onClick={() => {
-                        router.push(`/comment/list?song=${props.name}&author=${props.author}`)
-                    }} className="w-14 text-gray-700 flex items-center justify-center hover:bg-gray-100">
-                        <MdOutlineModeComment size={21} />
-                    </div>
+                    {renderCommentsNumber()}
                 </div>
             </div>
         )
@@ -199,9 +212,11 @@ export function SongRow(props) {
 
 export default function Home(props) {
     var [data, setData] = useState(props.data)
+    console.log(props.data)
     var [display, setDisplay] = useState(props.display || 'full')
     var [orderBy, setOrderBy] = useState(props.order_by)
     var [orderByAuthor, setOrderByAuthor] = useState(props.filter_by_author)
+    var [users, setUsers] = useState(props.users)
     var [filterDisplayOpened, setFilterDisplayOpened] = useState(0)
     const router = useRouter()
 
@@ -218,6 +233,7 @@ export default function Home(props) {
                     your_vote={obj.your_vote}
                     is_your={obj.is_your}
                     total_voters={obj.total_voters}
+                    total_comments={obj.total_comments}
                     key={uuidv4()}
                     reloadPage={reloadPage}
                     display={display}
@@ -270,7 +286,7 @@ export default function Home(props) {
             <div className="w-60 absolute z-10 top-10 right-0 flex flex-col items-center rounded-md border-solid border-gray-200 border-[1px] bg-white shadow-md">
                 {(display !== 'full') ? (
                     <div onClick={() => {
-                        document.cookie='filter_display=full; path=/; samesite=lax'
+                        document.cookie = 'filter_display=full; path=/; samesite=lax'
                         setDisplay('full')
                     }} className="w-full py-2 text-center">
                         completa
@@ -278,7 +294,7 @@ export default function Home(props) {
                 ) : (null)}
                 {(display !== 'simplified') ? (
                     <div onClick={() => {
-                        document.cookie='filter_display=simplified; path=/; samesite=lax'
+                        document.cookie = 'filter_display=simplified; path=/; samesite=lax'
                         setDisplay('simplified')
                     }} className="w-full py-2 text-center">
                         semplificata
@@ -291,7 +307,7 @@ export default function Home(props) {
     }
 
     function pageBody() {
-        if(props.status===500) {
+        if (props.status === 500) {
             return (
                 <div className="w-full flex items-center text-sm font-medium text-gray-700 h-60 justify-center">
                     <div className="max-w-xs text-center">

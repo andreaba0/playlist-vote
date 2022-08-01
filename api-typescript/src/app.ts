@@ -162,7 +162,7 @@ async function playlistList(req: any, res: Response): Promise<void> {
             select _user.username
             from _user
             where _user.uuid=s.user_uuid
-        )as created_by, (
+        ) as created_by, (
             select count(vote.vote)
             from vote
             where vote.vote='up' and vote.song_id=s.id
@@ -181,7 +181,11 @@ async function playlistList(req: any, res: Response): Promise<void> {
         ) as is_your, (
             select count(username)
             from _user
-        ) as total_voters
+        ) as total_voters, (
+            select count(comment.uuid)
+            from comment
+            where comment.song_id=s.id
+        ) as total_comments
         from song as s
         ${parseWhereClause()}
         ${parseOrderClause()}`,
@@ -199,7 +203,7 @@ async function playlistList(req: any, res: Response): Promise<void> {
         []
     )
 
-    if(errUsers) {
+    if (errUsers) {
         res.status(500).send('STORAGE_SERVICE')
         return
     }
@@ -214,7 +218,7 @@ app.post('/api/backend/playlist/list', authMiddlewareBackend, playlistList)
 
 app.post('/api/client/playlist/list', authMiddlewareClient, playlistList)
 
-app.post('/api/client/comment/list', authMiddlewareClient, async (req: any, res: Response): Promise<void> => {
+async function commentList(req: any, res: Response): Promise<void> {
     const body = req.body || null
     if (body === null) {
         res.status(400).send('BODY_REQUIRED')
@@ -278,73 +282,11 @@ app.post('/api/client/comment/list', authMiddlewareClient, async (req: any, res:
     } else {
         res.status(200).send(JSON.stringify(rows))
     }
-})
+}
 
-app.post('/api/backend/comment/list', authMiddlewareBackend, async (req: any, res: Response): Promise<void> => {
-    const body = req.body || null
-    if (body === null) {
-        res.status(400).send('BODY_REQUIRED')
-        return
-    }
-    const bodyData = JSON.parse(body)
-    const songName = bodyData.song
-    const songAuthor = bodyData.author
-    if (songName === null || songAuthor === null) {
-        res.status(400).send('INCOMPLETE_DATA')
-        return
-    }
+app.post('/api/client/comment/list', commentList)
 
-    var [err, rows] = await pgQuery(
-        `select
-            (
-                select 1
-                from comment as com
-                where com.user_uuid=$3 and com.uuid=c.uuid
-            ) as is_you,
-            c.uuid as comment_uuid,
-            extract(epoch from (now() - c.created_at)) as created_at,
-            c.user_uuid as uuid_author,
-            (
-                select u.username
-                from _user as u
-                where u.uuid=c.user_uuid
-            ) as author,
-            c.message as comment,
-            c.reply_to as reply_to_id, 
-            (
-                select _user.username
-                from _user inner join comment on _user.uuid=comment.user_uuid
-                where c.reply_to=comment.uuid and _user.uuid=comment.user_uuid
-            ) as reply_to_author,
-            (
-                select comment.message
-                from comment
-                where comment.uuid=c.reply_to
-            ) as replied_message, (
-                select count(user_uuid)
-                from comment_like
-                where comment_like.comment_uuid = c.uuid
-            ) as comment_like, (
-                select 1
-                from comment_like
-                where comment_like.user_uuid=$3 and comment_like.comment_uuid=c.uuid
-            ) as you_like
-            from comment as c
-            where c.song_id=(
-                select id
-                from song
-                where song.name=$1 and song.author=$2
-            )
-            order by created_at desc`,
-        [songName, songAuthor, req._user.user_uuid]
-    )
-
-    if (err) {
-        res.status(500).send('STORAGE_ERROR')
-    } else {
-        res.status(200).send(JSON.stringify(rows))
-    }
-})
+app.post('/api/backend/comment/list', authMiddlewareBackend, commentList)
 
 app.post('/api/client/comment/add', authMiddlewareClient, async (req: any, res: Response): Promise<void> => {
     const body = req.body || null
