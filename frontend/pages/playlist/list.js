@@ -62,6 +62,34 @@ export async function getServerSideProps(context) {
 export function SongRow(props) {
     const router = useRouter()
 
+    function parseSongName() {
+        const matchName = props.matchString || null
+        if (matchName === null) return (
+            <div className="text-sm text-gray-800 font-bold flex-grow break-all leading-6">
+                {props.name}{' '}-{' '}<span className="text-gray-500">{props.author}</span>
+            </div>
+        )
+
+        function pushFromSplit(arr, newStr) {
+            var res = []
+            for (var i = 0; i < arr.length; i++) {
+                if (i === arr.length - 1) continue
+                res.push(<span key={uuidv4()}>{arr[i]}</span>, <span key={uuidv4} className="bg-blue-100">{newStr}</span>)
+            }
+            res.push(arr[arr.length-1])
+            return res
+        }
+
+        const songName = `${props.name} - ${props.author}`
+        const songAuthor = props.author
+
+        return (
+            <div className="text-sm text-gray-800 font-bold flex-grow break-all tracking-wide">
+                {pushFromSplit(songName.split(matchName), matchName)}
+            </div>
+        )
+    }
+
     function renderVote() {
         if (props.up_vote + props.down_vote < props.total_voters) return (
             <div className="flex-grow flex flex-col items-start justify-center py-1 text-blue-500 font-bold text-sm border-r-2 border-gray-700">
@@ -180,9 +208,7 @@ export function SongRow(props) {
             <div className="w-full flex flex-col border-b-2 border-dotted border-gray-500">
                 <div className="w-full flex flex-row">
                     <div className="w-3/4 flex-grow flex flex-col items-start pt-2 pl-3">
-                        <div className="text-sm text-gray-800 font-bold flex-grow break-all">
-                            {props.name}{' '}-{' '}<span className="text-gray-500">{props.author}</span>
-                        </div>
+                        {parseSongName()}
                         <div className="text-sm text-gray-600 font-thin">
                             {(props.is_your === 1) ? 'Tu' : props.created_by}
                         </div>
@@ -202,9 +228,7 @@ export function SongRow(props) {
             <div className="w-full flex flex-row justify-center border-b-2 border-dotted border-gray-500 py-3">
                 <div className="w-3/4 flex-grow flex flex-row justify-start min-h-6 items-center space-x-4 pl-5">
                     {renderVoteSimplified()}
-                    <div className="text-sm text-gray-800 font-bold break-all flex-grow">
-                        {props.name}{' '}-{' '}<span className="text-gray-400">{props.author}</span>
-                    </div>
+                    {parseSongName()}
                 </div>
                 {renderUpVote()}
                 {renderDownVote()}
@@ -228,7 +252,7 @@ export default function Home(props) {
         const elem = []
         data.map((obj) => {
             const tempName = `${obj.name} - ${obj.author}`
-            if (matchString !== '' && tempName.match(matchString) === null) return
+            if (matchString !== '' && tempName.match(matchString.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')) === null) return
             elem.push(
                 <SongRow
                     name={obj.name}
@@ -243,6 +267,7 @@ export default function Home(props) {
                     key={uuidv4()}
                     reloadPage={reloadPage}
                     display={display}
+                    matchString={(matchString !== '') ? matchString : null}
                 />
             )
         })
