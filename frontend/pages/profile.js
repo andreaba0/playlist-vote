@@ -53,7 +53,7 @@ export default function ProfilePage() {
                         Vuoi cambiare password?
                     </div>
                     <div className="text-center px-3 py-2 underline cursor-pointer select-none text-blue-600 text-base font-bold">
-                        Clicca qui
+                        Cambiala ora
                     </div>
                 </div>
 
@@ -62,7 +62,7 @@ export default function ProfilePage() {
                         Se vuoi visionare le tue sessioni attive
                     </div>
                     <div className="text-center px-3 py-2 underline cursor-pointer select-none text-blue-600 text-base font-bold">
-                        Clicca qui
+                        visualizza sessioni attive
                     </div>
                 </div>
             </div>

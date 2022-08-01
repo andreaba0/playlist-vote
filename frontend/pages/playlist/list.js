@@ -11,6 +11,9 @@ import { HeadComponent } from "@/Components/head"
 export async function getServerSideProps(context) {
     const cookies = parseCookie(context.req.headers.cookie || '')
     const userAccessCookie = cookies['session'] || null
+    const orderBy = cookies['filter_order_by'] || null
+    const orderByAuthor = cookies['filter_by_author'] || null
+    const displayFilter = cookies['filter_display'] || null
     if (userAccessCookie === null) return {
         redirect: {
             permanent: false,
@@ -42,8 +45,11 @@ export async function getServerSideProps(context) {
 
     return {
         props: {
-            data: rows,
-            display: cookies['filter_display'] || null
+            data: rows.list,
+            users: rows.users,
+            display: displayFilter,
+            order_by: orderBy,
+            filter_by_author: orderByAuthor
         }
     }
 }
@@ -194,6 +200,8 @@ export function SongRow(props) {
 export default function Home(props) {
     var [data, setData] = useState(props.data)
     var [display, setDisplay] = useState(props.display || 'full')
+    var [orderBy, setOrderBy] = useState(props.order_by)
+    var [orderByAuthor, setOrderByAuthor] = useState(props.filter_by_author)
     var [filterDisplayOpened, setFilterDisplayOpened] = useState(0)
     const router = useRouter()
 

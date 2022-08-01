@@ -114,9 +114,50 @@ app.post('/api/auth/status', authMiddlewareBackend, async (req: any, res: Respon
     res.status(200).send('OK')
 })
 
-app.post('/api/backend/playlist/list', authMiddlewareBackend, async (req: any, res: Response): Promise<void> => {
+async function playlistList(req: any, res: Response): Promise<void> {
+    const filters = {
+        order: null,
+        author: null
+    }
+    try {
+        const body = JSON.parse(req.body || '{}')
+        switch (body.order || '') {
+            case 'alf_asc':
+                filters.order = 's.name asc'
+                break
+            case 'alf_desc':
+                filters.order = 's.name desc'
+                break
+            case 'date_asc':
+                filters.order = 's.created_at asc'
+                break
+            case 'date_desc':
+                filters.order = 's.created_at desc'
+                break
+        }
+        filters.author = body.author || null
+    } catch (e) {
+        console.log(e)
+    }
 
-    var [err, rows] = await pgQuery(
+    function itemList() {
+        var r = []
+        r.push(req._user.user_uuid)
+        if (filters.author !== null) r.push(filters.author)
+        return r
+    }
+
+    function parseWhereClause() {
+        if (filters.author !== null) return `where s.user_uuid=(select uuid from _user as usr where usr.username=$2)`
+        return ''
+    }
+
+    function parseOrderClause() {
+        if (filters.order === null) return ''
+        return `order by ${filters.order}`
+    }
+
+    var [errList, rowsList] = await pgQuery(
         `select s.name, s.author, (
             select _user.username
             from _user
@@ -142,57 +183,36 @@ app.post('/api/backend/playlist/list', authMiddlewareBackend, async (req: any, r
             from _user
         ) as total_voters
         from song as s
-        order by s.name asc`,
-        [req._user.user_uuid]
+        ${parseWhereClause()}
+        ${parseOrderClause()}`,
+        [...itemList()]
     )
 
-    if (err) {
+    if (errList) {
         res.status(500).send('STORAGE_SERVICE')
         return
     }
 
-    res.status(200).send(JSON.stringify(rows))
-})
-
-app.post('/api/client/playlist/list', authMiddlewareClient, async (req: any, res: Response): Promise<void> => {
-
-    var [err, rows] = await pgQuery(
-        `select s.name, s.author, (
-            select _user.username
-            from _user
-            where _user.uuid=s.user_uuid
-        )as created_by, (
-            select count(vote.vote)
-            from vote
-            where vote.vote='up' and vote.song_id=s.id
-        ) as up, (
-            select count(vote.vote)
-            from vote
-            where vote.vote='down' and vote.song_id=s.id
-        ) as down, (
-            select vote.vote
-            from vote
-            where vote.song_id=s.id and vote.user_uuid=$1
-        ) as your_vote, (
-            select 1
-            from song as so
-            where so.id=s.id and user_uuid=$1
-        ) as is_your, (
-            select count(username)
-            from _user
-        ) as total_voters
-        from song as s
-        order by s.name asc`,
-        [req._user.user_uuid]
+    var [errUsers, rowsUsers] = await pgQuery(
+        `select distinct usr.username
+        from song as s inner join _user as usr on s.user_uuid = usr.uuid`,
+        []
     )
 
-    if (err) {
+    if(errUsers) {
         res.status(500).send('STORAGE_SERVICE')
         return
     }
 
-    res.status(200).send(JSON.stringify(rows))
-})
+    res.status(200).send(JSON.stringify({
+        list: rowsList,
+        users: rowsUsers
+    }))
+}
+
+app.post('/api/backend/playlist/list', authMiddlewareBackend, playlistList)
+
+app.post('/api/client/playlist/list', authMiddlewareClient, playlistList)
 
 app.post('/api/client/comment/list', authMiddlewareClient, async (req: any, res: Response): Promise<void> => {
     const body = req.body || null
@@ -633,10 +653,6 @@ app.post('/api/client/signout', authMiddlewareClient, async (req: any, res: Resp
     }
 })
 
-app.post('/api/client/password/change', authMiddlewareClient, async (req: any, res: Response): Promise<void> => {
-    res.status(500).send('NOT_IMPLEMENTED_YET')
-})
-
 app.get('/api/client/session/list', authMiddlewareClient, async (req: any, res: Response): Promise<void> => {
     const redisclient = await getRedisClient()
     var sessionList = []
@@ -690,8 +706,8 @@ app.post('/api/client/password/change', authMiddlewareClient, async (req: any, r
     }
     try {
         const bodyData = JSON.parse(body)
-        const oldPassword = bodyData.old_password || null
-        const newPassword = bodyData.new_password || null
+        const oldPassword: String = bodyData.old_password || null
+        const newPassword: String = bodyData.new_password || null
         if (oldPassword === null || newPassword === null) {
             res.status(400).send('BODY_NOT_COMPLETE')
             return
