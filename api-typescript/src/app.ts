@@ -284,7 +284,7 @@ async function commentList(req: any, res: Response): Promise<void> {
     }
 }
 
-app.post('/api/client/comment/list', commentList)
+app.post('/api/client/comment/list', authMiddlewareClient, commentList)
 
 app.post('/api/backend/comment/list', authMiddlewareBackend, commentList)
 
