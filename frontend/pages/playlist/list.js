@@ -11,6 +11,7 @@ import { DropDownMenu } from "@/Components/dropdown"
 
 export async function getServerSideProps(context) {
     const cookies = parseCookie(context.req.headers.cookie || '')
+    console.log(cookies)
     const userAccessCookie = cookies['session'] || null
     const orderBy = cookies['filter_order_by'] || null
     const orderByAuthor = cookies['filter_by_author'] || null
@@ -27,7 +28,10 @@ export async function getServerSideProps(context) {
             session: userAccessCookie,
             order: orderBy || undefined,
             author: (orderByAuthor === 'all') ? undefined : orderByAuthor || undefined
-        })
+        }),
+        headers: {
+            cookie: context.req.headers.cookie
+        }
     })
     if (res.status >= 500) {
         return {
