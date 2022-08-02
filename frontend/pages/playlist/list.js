@@ -80,7 +80,7 @@ export function SongRow(props) {
                 if (i === arr.length - 1) continue
                 res.push(<span key={uuidv4()}>{arr[i]}</span>, <span key={uuidv4} className="bg-blue-100">{newStr}</span>)
             }
-            res.push(arr[arr.length-1])
+            res.push(arr[arr.length - 1])
             return res
         }
 
@@ -376,7 +376,7 @@ export default function Home(props) {
                                     text: 'DATE DESC'
                                 }
                             ]
-                        } default="alf_asc" onChange={(selected) => {
+                        } default={(orderBy === null) ? 'alf_asc' : orderBy} onChange={(selected) => {
                             document.cookie = `filter_order_by=${selected}; path=/; samesite=lax`
                             setOrderBy(selected)
                             reloadPage()
