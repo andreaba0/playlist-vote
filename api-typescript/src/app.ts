@@ -432,6 +432,10 @@ app.post('/api/client/song/add', authMiddlewareClient, async (req: any, res: Res
             return
         }
         const songData = JSON.parse(body)
+        if(songData.song===""||songData.author==="") {
+            res.status(400).send('DATA_NOT_COMPLETE')
+            return
+        }
         var [err, rows] = await pgQuery(
             `insert into song (
                 name,
