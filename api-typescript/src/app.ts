@@ -115,7 +115,6 @@ app.post('/api/auth/status', authMiddlewareBackend, async (req: any, res: Respon
 })
 
 async function playlistList(req: any, res: Response): Promise<void> {
-    console.log(req)
     const filters = {
         order: null,
         author: null
