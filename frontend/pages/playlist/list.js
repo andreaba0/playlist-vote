@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from "uuid"
 import { MdClose, MdAdd, MdThumbUp, MdThumbDown, MdThumbUpOffAlt, MdThumbDownOffAlt, MdExitToApp, MdOutlineModeComment } from 'react-icons/md'
 import { FaCaretDown, FaCaretUp } from 'react-icons/fa'
 import { useRouter } from 'next/router'
-import { Page } from "@/Components/page"
+import { AbsoluteMenu, Page } from "@/Components/page"
 import { Menu } from "@/Components/menu"
 import { HeadComponent } from "@/Components/head"
 import { DropDownMenu } from "@/Components/dropdown"
@@ -314,13 +314,7 @@ export default function Home(props) {
 
     function renderAddButton() {
         return (
-            <div className="w-full fixed z-10 bottom-0 right-0 flex flex-col items-center">
-                <div className="w-full max-w-xl relative">
-                    <div onClick={goToAdd} className="flex w-14 h-14 items-center justify-center rounded-full cursor-pointer bg-emerald-500 text-white absolute bottom-4 right-4">
-                        <MdAdd size={30} />
-                    </div>
-                </div>
-            </div>
+            <AbsoluteMenu onClick={goToAdd} icon={<MdAdd size={30} />} />
         )
     }
 

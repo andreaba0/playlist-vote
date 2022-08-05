@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from "uuid"
 import { MdClose, MdAdd, MdThumbUp, MdThumbDown, MdThumbUpOffAlt, MdThumbDownOffAlt, MdExitToApp, MdReply, MdOutlineAddComment } from 'react-icons/md'
 import { FaHeart, FaRegHeart } from 'react-icons/fa'
 import { useRouter } from 'next/router'
-import { Page } from "@/Components/page"
+import { AbsoluteMenu, Page } from "@/Components/page"
 import { Menu } from "@/Components/menu"
 import { HeadComponent } from "@/Components/head"
 
@@ -252,18 +252,9 @@ export default function CommentsPage(props) {
 
     function renderAbsoluteMenu() {
         return (
-            <div className="w-full fixed z-10 bottom-0 right-0 flex flex-col items-center">
-                <div className="w-full max-w-xl relative">
-                    <div
-                        onClick={() => {
-                            router.push(`/comment/add?song=${props.song}&author=${props.author}`)
-                        }}
-                        className="bg-blue-600 w-14 h-14 flex items-center justify-center rounded-full text-white font-bold text-sm cursor-pointer absolute right-4 bottom-4"
-                    >
-                        <MdOutlineAddComment size={21} />
-                    </div>
-                </div>
-            </div>
+            <AbsoluteMenu onClick={() => {
+                router.push(`/comment/add?song=${props.song}&author=${props.author}`)
+            }} icon={<MdOutlineAddComment size={21} />} />
         )
     }
 
